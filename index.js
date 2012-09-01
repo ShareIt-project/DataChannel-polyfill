@@ -9,40 +9,38 @@ var started = false;
 
 var logg = function(s) { console.log(s); };
 
-// when PeerConn is created, send setup data to peer via WebSocket
-function onSignal(message)
-{
-  logg("Sending setup signal");
-  socket.send(message);
-}
-
-// when remote adds a stream, hand it on to the local video element
-function onRemoteStreamAdded(event)
-{
-  logg("Added remote stream");
-  remotevid.src = window.webkitURL.createObjectURL(event.stream);
-}
-
-// when remote removes a stream, remove it from the local video element
-function onRemoteStreamRemoved(event)
-{
-  logg("Remove remote stream");
-  remotevid.src = "";
-}
-
 function createPeerConnection()
 {
   try
   {
-    peerConn = new PeerConnection("STUN stun.l.google.com:19302", onSignal);
+    peerConn = new PeerConnection("STUN stun.l.google.com:19302",
+    function(message)
+    {
+      // when PeerConn is created, send setup data to peer via WebSocket
+
+      logg("Sending setup signal");
+      socket.send(message);
+    });
   }
   catch(e)
   {
     console.log("Failed to create PeerConnection, exception: " + e.message);
   }
 
-  peerConn.addEventListener("addstream", onRemoteStreamAdded, false);
-  peerConn.addEventListener("removestream", onRemoteStreamRemoved, false)
+  peerConn.addEventListener("addstream", function(event)
+  {
+    // when remote adds a stream, hand it on to the local video element
+
+    logg("Added remote stream");
+    remotevid.src = window.webkitURL.createObjectURL(event.stream);
+  }, false);
+  peerConn.addEventListener("removestream", function(event)
+  {
+    // when remote removes a stream, remove it from the local video element
+
+    logg("Remove remote stream");
+    remotevid.src = "";
+  }, false)
 }
 
 // start the connection upon user request
@@ -60,8 +58,7 @@ function connect()
 }
 
 // accept connection request
-socket.addEventListener("message", onMessage, false);
-function onMessage(evt)
+socket.addEventListener("message", function(evt)
 {
   logg("RECEIVED: "+evt.data);
   if(!started)
@@ -75,7 +72,8 @@ function onMessage(evt)
   // Message returned from other side
   logg('Processing signaling message...');
   peerConn.processSignalingMessage(evt.data);
-}
+}, false);
+
 
 function hangUp()
 {
