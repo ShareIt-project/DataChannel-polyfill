@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebRTC Demo</title>  
+</head>
+<body>
+  <h1>WebRTC Demo using WebSockets</h1>
+  <video id="sourcevid" autoplay style="width: 200px; height: 150px; border: 1px solid black;"></video>
+  <button type="button" onclick="startVideo();">Start video</button>
+  <button type="button" onclick="stopVideo();">Stop video</button>
+  <video id="remotevid" autoplay style="width: 200px; height: 150px; border: 1px solid black;"></video>
+  <button type="button" onclick="connect();">Connect</button>
+  <button type="button" onclick="hangUp();">Hang Up</button>
+
+  <p>Run a node.js server and adapt the address in the code.</p>
+  <script src="index.js"></script>
+</body>
+</html>
