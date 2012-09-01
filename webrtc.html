@@ -14,7 +14,9 @@
 
   <p>Run a node.js server and adapt the address in the code.</p>
   <script>
-  var socket = new WebSocket('ws://124.169.31.194:1337/');
+  var PeerConnection = window.PeerConnection || window.webkitDeprecatedPeerConnection || window.webkitPeerConnection00
+
+  var socket = new WebSocket('ws://localhost:8001/');
   var sourcevid = document.getElementById('sourcevid');
   var remotevid = document.getElementById('remotevid');
   var localStream = null;
@@ -43,15 +45,11 @@
 
   function createPeerConnection() {
     try {
-      logg("Creating peer connection");
-      peerConn = new webkitDeprecatedPeerConnection("STUN stun.l.google.com:19302", onSignal);
+      peerConn = new PeerConnection("STUN stun.l.google.com:19302", onSignal);
     } catch (e) {
-      try {
-        peerConn = new webkitPeerConnection("STUN stun.l.google.com:19302", onSignal);
-      } catch (e) {
-        console.log("Failed to create PeerConnection, exception: " + e.message);
-      }
+      console.log("Failed to create PeerConnection, exception: " + e.message);
     }
+
     peerConn.addEventListener("addstream", onRemoteStreamAdded, false);
     peerConn.addEventListener("removestream", onRemoteStreamRemoved, false)
   }

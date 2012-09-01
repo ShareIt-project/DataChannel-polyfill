@@ -7,7 +7,7 @@ var options = {key:  fs.readFileSync('certs/privatekey.pem').toString(),
 
 // HTTP server
 var server = require('https').createServer(options)
-    server.listen(8000);
+    server.listen(8001);
 
 var WebSocketServer = require('ws').Server
   , wss = new WebSocketServer({server: server});
@@ -55,6 +55,7 @@ wss.on('connection', function(socket)
     });
 
     socket.emit('PeerConnection.setId', socket.id)
+    console.log("Connected socket.id: "+socket.id)
 })
 
 // generate a 4 digit hex code randomly
