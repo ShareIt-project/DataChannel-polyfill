@@ -20,7 +20,7 @@ wss.on('connection', function(socket)
     socket.id = id()
     wss._sockets[socket.id] = socket
 
-    socket.emit = function()
+    socket._emit = function()
     {
         var args = Array.prototype.slice.call(arguments, 0);
 
@@ -31,10 +31,10 @@ wss.on('connection', function(socket)
         });
     }
 
-    socket.on('message', function(message)
+    socket.onmessage = function(message)
     {
-        console.log("socket.onmessage = '"+message+"'")
-        var args = JSON.parse(message)
+        console.log("socket.onmessage = '"+message.data+"'")
+        var args = JSON.parse(message.data)
 
         var eventName = args[0]
         var socketId  = args[1]
@@ -45,16 +45,16 @@ wss.on('connection', function(socket)
         {
             args[1] = socket.id
 
-            soc.emit.apply(soc, args);
+            soc._emit.apply(soc, args);
         }
         else
         {
-            socket.emit(eventName+'.error', socketId);
+            socket._emit(eventName+'.error', socketId);
             console.warn(eventName+': '+socket.id+' -> '+socketId);
         }
     });
 
-    socket.emit('PeerConnection.setId', socket.id)
+    socket._emit('PeerConnection.setId', socket.id)
     console.log("Connected socket.id: "+socket.id)
 })
 
