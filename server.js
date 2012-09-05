@@ -70,3 +70,21 @@ function S4() {
 function id() {
   return (S4() + S4() + "-" + S4() + "-" + S4() + "-" + S4() + "-" + S4() + S4() + S4());
 }
+
+
+// DataChannel proxy server
+var server = require('https').createServer(options).listen(8002);
+var WebSocketServer = require('ws').Server
+var wss = new WebSocketServer({server: server});
+
+wss.on('connection', function(socket)
+{
+    // Message received
+    socket.onmessage = function(message)
+    {
+        if(socket.peer != undefined)
+            socket.peer.send(message)
+    });
+
+    console.log("Connected socket.id: "+socket.id)
+})
