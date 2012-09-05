@@ -5,21 +5,16 @@ var options = {key:  fs.readFileSync('certs/privatekey.pem').toString(),
                cert: fs.readFileSync('certs/certificate.pem').toString(),
                ca:  [fs.readFileSync('certs/certrequest.csr').toString()]}
 
-// HTTP server
-var server = require('https').createServer(options)
-    server.listen(8001);
-
+// Server
+var server = require('https').createServer(options).listen(8001);
 var WebSocketServer = require('ws').Server
-  , wss = new WebSocketServer({server: server});
+var wss = new WebSocketServer({server: server});
 
 //Array to store connections
-wss._sockets = {}
+wss.sockets = {}
 
 wss.on('connection', function(socket)
 {
-    socket.id = id()
-    wss._sockets[socket.id] = socket
-
     socket._emit = function()
     {
         var args = Array.prototype.slice.call(arguments, 0);
@@ -31,6 +26,7 @@ wss.on('connection', function(socket)
         });
     }
 
+    // Message received
     socket.onmessage = function(message)
     {
         console.log("socket.onmessage = '"+message.data+"'")
@@ -39,8 +35,7 @@ wss.on('connection', function(socket)
         var eventName = args[0]
         var socketId  = args[1]
 
-//        var soc = io.sockets.sockets[socketId]
-        var soc = wss._sockets[socketId]
+        var soc = wss.sockets[socketId]
         if(soc)
         {
             args[1] = socket.id
@@ -53,6 +48,14 @@ wss.on('connection', function(socket)
             console.warn(eventName+': '+socket.id+' -> '+socketId);
         }
     });
+
+    // Set and register a sockedId if it was not set previously
+    // Mainly for WebSockets server
+    if(socket.id == undefined)
+    {
+        socket.id = id()
+        wss.sockets[socket.id] = socket
+    }
 
     socket._emit('PeerConnection.setId', socket.id)
     console.log("Connected socket.id: "+socket.id)
