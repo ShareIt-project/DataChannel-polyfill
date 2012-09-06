@@ -99,7 +99,8 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
             }
           }
 
-          channel.send(JSON.stringify(["create", this._peerId, configuration]))
+          channel.send(JSON.stringify(["create", this._peerId, channel._udt.id,
+                                       configuration]))
         }
 
     return channel
@@ -127,7 +128,7 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
             channel.readyState = "open"
 
-            channel.send(JSON.stringify(["ready", this._peerId]))
+            channel.send(JSON.stringify(["ready", this._peerId, channel._udt.id]))
 
             var evt = document.createEvent('Event')
                 evt.initEvent('datachannel', true, true)

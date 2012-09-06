@@ -28,6 +28,7 @@ wss.on('connection', function(socket)
 
         var eventName = args[0]
         var socketId  = args[1]
+        var udt       = args[2]
 
         var soc = wss.sockets[socketId]
 
@@ -37,6 +38,7 @@ wss.on('connection', function(socket)
                 if(soc)
                 {
                     args[1] = socket.id
+                    args.splice(2,1)
                     soc.send(JSON.stringify(args))
                 }
                 else
