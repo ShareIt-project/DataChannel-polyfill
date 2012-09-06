@@ -16,22 +16,6 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
   {
     // Use a WebSocket as 'underlying data transport' to create the DataChannel
     this._udt = new WebSocket(SERVER)
-    this._udt.onmessage = function(message)
-    {
-      if(message.data == 'ready')
-      {
-        this._udt.onmessage = function(message)
-        {
-          if(this.onmessage)
-            this.onmessage(message)
-        }
-
-        this.readyState = "open"
-
-        if(this.onopen)
-          this.onopen()
-      }
-    }
 
     this.close = this._udt.close
     this.send  = this._udt.send
@@ -62,39 +46,60 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
   }
 
   // Add required methods to PeerConnection
-  PeerConnection.prototype._createDataChannel = function(label, reliable)
+  PeerConnection.prototype._createDataChannel = function(configuration)
   {
     var channel = new DataChannel()
-        channel.label = label
+        channel.label = configuration.label
         channel.reliable = true
 
-    if(reliable != undefined)
-      channel.reliable = reliable
-
-    this._datachannels = this._datachannels || {}
-    this._datachannels[label] = channel
+    if(configuration.reliable != undefined)
+      channel.reliable = configuration.reliable
 
     return channel
   }
 
   PeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
   {
-    if(this.readyState == "closed")
-      throw INVALID_STATE_ERR;
-
     if(!this._peerId)
     {
       console.warn("peerId is not defined")
       return
     }
 
+    if(this.readyState == "closed")
+      throw INVALID_STATE_ERR;
+
     label = label || ""
     dataChannelDict = dataChannelDict || {}
 
-    var channel = this._createDataChannel(label, dataChannelDict.reliable)
+    var configuration = {label: label}
+    if(dataChannelDict.reliable != undefined)
+        configuration['reliable'] = dataChannelDict.reliable;
+
+    var channel = this._createDataChannel(configuration)
         channel._udt.onopen = function()
         {
-            channel.send(JSON.stringify(["create", this._peerId, label]))
+          channel._udt.onmessage = function(message)
+          {
+            if(message.data == 'ready')
+            {
+              if(this.readyState == "closed")
+                return;
+
+              channel._udt.onmessage = function(message)
+              {
+                if(channel.onmessage)
+                  channel.onmessage(message)
+              }
+
+              channel.readyState = "open"
+
+              if(channel.onopen)
+                channel.onopen()
+            }
+          }
+
+          channel.send(JSON.stringify(["create", this._peerId, configuration]))
         }
 
     return channel
@@ -102,16 +107,27 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
   PeerConnection.prototype._ondatachannel = function(data)
   {
+    if(!this._peerId)
+    {
+      console.warn("peerId is not defined")
+      return
+    }
+
     if(this.readyState == "closed")
       return;
 
-    var configuration = data.configuration
-
-    var channel = this._createDataChannel(configuration.label,
-                                           configuration.reliable)
+    var channel = this._createDataChannel(data.configuration)
         channel._udt.onopen = function()
         {
-            channel.send(JSON.stringify(["ready", this._peerId, channel.label]))
+            this._udt.onmessage = function(message)
+            {
+              if(channel.onmessage)
+                channel.onmessage(message)
+            }
+
+            channel.readyState = "open"
+
+            channel.send(JSON.stringify(["ready", this._peerId]))
 
             var evt = document.createEvent('Event')
                 evt.initEvent('datachannel', true, true)
