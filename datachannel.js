@@ -9,64 +9,56 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
   console.log("Adding DataChannel polyfill...");
 
-  var SERVER = "wss://localhost:8000"
+  var SERVER = "wss://localhost:8002"
 
-  // Create a per PeerConnection underalying data transport
-  function createUDT(pc)
+  // DataChannel polyfill using WebSockets as 'underlying data transport'
+  function DataChannel()
   {
-    pc._udt = new WebSocket(SERVER)
-
-    pc._udt.emit = function()
+    // Use a WebSocket as 'underlying data transport' to create the DataChannel
+    this._udt = new WebSocket(SERVER)
+    this._udt.onmessage = function(message)
     {
-      var args = Array.prototype.slice.call(arguments, 0);
-
-      pc._udt.send(JSON.stringify(args), function(error)
+      if(message.data == 'ready')
       {
-        if(error)
-          console.log(error);
-      });
-    }
-
-    pc._udt.onopen = function()
-    {
-      pc._udt.onmessage = function(msg)
-      {
-        var args = JSON.parse(msg.data)
-
-        var eventName = args[0]
-        var socketId  = args[1]
-
-        switch(eventName)
+        this._udt.onmessage = function(message)
         {
-          case "PeerConnection.setId":
-            pc._id = socketId
-            break
-
-          case "PeerConnection.setPeerId":
-            pc._peerId = socketId
-            break
-
-          case "PeerConnection.createDataChannel":
-            pc._ondatachannel({configuration: {label: args[3]}})
-            break
-
-          case "DataChannel.send":
-            break
+          if(this.onmessage)
+            this.onmessage(message)
         }
+
+        this.readyState = "open"
+
+        if(this.onopen)
+          this.onopen()
       }
     }
+
+    this.close = this._udt.close
+    this.send  = this._udt.send
+
+    this.readyState = "connecting"
   }
 
-  PeerConnection.prototype.datachannel_getId = function(peerId)
+  PeerConnection.prototype._setId = function(id)
   {
-    return this._id
-    //
+    var socket = new WebSocket(SERVER)
+        socket.onopen = function()
+        {
+            socket.onmessage = function(message)
+            {
+                var args = JSON.parse(message.data)
+
+                if(args[0] == 'create' && args[1] == this._peerId)
+                    this._ondatachannel(args[2])
+            }
+
+            socket.send(JSON.stringify(['setId', id]))
+        }
   }
 
-  PeerConnection.prototype.datachannel_setPeerId = function(peerId)
+  PeerConnection.prototype._setPeerId = function(peerId)
   {
     this._peerId = peerId
-    //
   }
 
   // Add required methods to PeerConnection
@@ -81,7 +73,6 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
     this._datachannels = this._datachannels || {}
     this._datachannels[label] = channel
-    channel._pc = this
 
     return channel
   }
@@ -91,14 +82,20 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
     if(this.readyState == "closed")
       throw INVALID_STATE_ERR;
 
+    if(!this._peerId)
+    {
+      console.warn("peerId is not defined")
+      return
+    }
+
     label = label || ""
     dataChannelDict = dataChannelDict || {}
 
     var channel = this._createDataChannel(label, dataChannelDict.reliable)
-
-    if(!this._udt)
-        createUDT(this);
-    this._udt.emit("PeerConnection.createDataChannel", this._peerId, label)
+        channel._udt.onopen = function()
+        {
+            channel.send(JSON.stringify(["create", this._peerId, label]))
+        }
 
     return channel
   }
@@ -112,38 +109,16 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
     var channel = this._createDataChannel(configuration.label,
                                            configuration.reliable)
+        channel._udt.onopen = function()
+        {
+            channel.send(JSON.stringify(["ready", this._peerId, channel.label]))
 
-    channel.readyState = "open"
+            var evt = document.createEvent('Event')
+                evt.initEvent('datachannel', true, true)
+                evt.channel = channel
 
-    if(!this._udt)
-        createUDT(this);
-    this._udt.emit("datachannel.ready", this._peerId, channel.label)
-
-    var evt = document.createEvent('Event')
-        evt.initEvent('datachannel', true, true)
-        evt.channel = channel
-
-    if(this.ondatachannel)
-      this.ondatachannel(evt);
+            if(this.ondatachannel)
+                this.ondatachannel(evt);
+        }
   });
-
-  // DataChannel polyfill using websockets as 'underlying data transport'
-  function DataChannel()
-  {
-//    bufferedAmount;
-
-//    onopen;
-//    onerror;
-//    onclose;
-//    binaryType;
-
-//    channel.close = function(){};
-
-    this.send = function(data)
-    {
-      this._pc._udt.emit("DataChannel.send", this._pc._peerId, this.label, data)
-    }
-
-    this.readyState = "connecting"
-  }
 }).call(this);

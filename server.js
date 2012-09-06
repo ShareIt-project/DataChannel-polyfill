@@ -5,8 +5,8 @@ var options = {key:  fs.readFileSync('certs/privatekey.pem').toString(),
                cert: fs.readFileSync('certs/certificate.pem').toString(),
                ca:  [fs.readFileSync('certs/certrequest.csr').toString()]}
 
-// Server
-var server = require('https').createServer(options).listen(8001);
+// DataChannel proxy server
+var server = require('https').createServer(options).listen(8002);
 var WebSocketServer = require('ws').Server
 var wss = new WebSocketServer({server: server});
 
@@ -15,18 +15,12 @@ wss.sockets = {}
 
 wss.on('connection', function(socket)
 {
-    socket._emit = function()
-    {
-        var args = Array.prototype.slice.call(arguments, 0);
-
-        socket.send(JSON.stringify(args), function(error)
-        {
-            if(error)
-                console.log(error);
-        });
-    }
-
     // Message received
+    function onmessage_proxy(message)
+    {
+        socket.peer.send(message)
+    };
+
     socket.onmessage = function(message)
     {
         console.log("socket.onmessage = '"+message.data+"'")
@@ -36,55 +30,67 @@ wss.on('connection', function(socket)
         var socketId  = args[1]
 
         var soc = wss.sockets[socketId]
-        if(soc)
-        {
-            args[1] = socket.id
 
-            soc._emit.apply(soc, args);
-        }
-        else
+        switch(eventName)
         {
-            socket._emit(eventName+'.error', socketId);
-            console.warn(eventName+': '+socket.id+' -> '+socketId);
-        }
-    });
+            case 'create':
+                if(soc)
+                {
+                    args[1] = socket.id
+                    soc.send(JSON.stringify(args))
+                }
+                else
+                {
+                    socket.send(JSON.stringify(['create.error', socketId]))
+                    console.warn("[create] "+socketId+" don't exists");
+                }
 
-    // Set and register a sockedId if it was not set previously
-    // Mainly for WebSockets server
-    if(socket.id == undefined)
+                break
+
+            case 'ready':
+                if(soc)
+                {
+                    socket.peer = soc
+                    soc.peer = socket
+
+                    socket.onmessage = onmessage_proxy
+                    soc.onmessage = onmessage_proxy
+
+                    delete wss.sockets[socketId]
+                    delete wss.sockets[socket.id]
+
+                    socket.send('ready')
+                    soc.send('ready')
+                }
+                else
+                {
+                    socket.send(JSON.stringify(['ready.error', socketId]))
+                    console.warn("[ready] "+socketId+" don't exists");
+                }
+
+                break
+
+            case 'setId':
+                wss.sockets[socketId] = socket
+        }
+    };
+
+    // Peer connection is closed, close the other end
+    socket.onclose = function()
     {
-        socket.id = id()
-        wss.sockets[socket.id] = socket
-    }
-
-    socket._emit('PeerConnection.setId', socket.id)
-    console.log("Connected socket.id: "+socket.id)
+        if(socket.peer != undefined)
+            socket.peer.close();
+    };
 })
 
 // generate a 4 digit hex code randomly
-function S4() {
-  return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+function S4()
+{
+  return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1)
 }
 
 // make a REALLY COMPLICATED AND RANDOM id, kudos to dennis
-function id() {
-  return (S4() + S4() + "-" + S4() + "-" + S4() + "-" + S4() + "-" + S4() + S4() + S4());
-}
-
-
-// DataChannel proxy server
-var server = require('https').createServer(options).listen(8002);
-var WebSocketServer = require('ws').Server
-var wss = new WebSocketServer({server: server});
-
-wss.on('connection', function(socket)
+function id()
 {
-    // Message received
-    socket.onmessage = function(message)
-    {
-        if(socket.peer != undefined)
-            socket.peer.send(message)
-    });
-
-    console.log("Connected socket.id: "+socket.id)
-})
+  return S4()+S4() +"-"+ S4() +"-"+ S4() +"-"+ S4() +"-"+ S4()+S4()+S4()
+}
