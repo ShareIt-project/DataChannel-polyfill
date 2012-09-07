@@ -1,17 +1,7 @@
 var PeerConnection = window.PeerConnection || window.webkitPeerConnection00
 
 var socket = new WebSocket('wss://localhost:8001/');
-    socket.emit = function()
-    {
-        var args = Array.prototype.slice.call(arguments, 0);
-
-        socket.send(JSON.stringify(args), function(error)
-        {
-            if(error)
-                console.log(error);
-        });
-    }
-    socket.addEventListener("message", function(msg)
+    socket.onmessage = function(msg)
     {
       console.log("RECEIVED: "+msg.data);
 
@@ -22,14 +12,9 @@ var socket = new WebSocket('wss://localhost:8001/');
 
       switch(eventName)
       {
-        case "PeerConnection.setId":
+        case "setId":
           socket._id = socketId
           document.getElementById('localId').value = socketId
-          break
-
-        case "PeerConnection.setPeerId":
-          socket._peerId = socketId
-          document.getElementById('remoteId').value = socketId
           break
 
         case "send":
@@ -38,9 +23,8 @@ var socket = new WebSocket('wss://localhost:8001/');
 
           // Message returned from other side
           console.log('Processing signaling message...');
-          peerConn.processSignalingMessage(args[3]);
       }
-    }, false);
+    }
 
 var peerConn = null;
 
@@ -53,7 +37,7 @@ function createPeerConnection()
     {
       // when PeerConn is created, send setup data to peer via WebSocket
       console.log("Sending setup signal");
-      socket.emit("send", socket._peerId, message);
+      socket.send(JSON.stringify(["send", socket._peerId, message]);
     });
   }
   catch(e)
