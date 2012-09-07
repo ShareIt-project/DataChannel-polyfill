@@ -20,14 +20,6 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
     this.close = function(){this._udt.close()}
     this.send  = function(data, onerror){this._udt.send(data, onerror)}
 
-    this._udt.onclose = function()
-    {
-      delete this._pc._datachannels[this.label]
-
-      if(this.onclose)
-        this.onclose()
-    }
-
     this.readyState = "connecting"
   }
 
@@ -63,10 +55,18 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
     if(configuration.reliable != undefined)
       channel.reliable = configuration.reliable
 
-    channel._pc = this
-
     this._datachannels = this._datachannels || {}
     this._datachannels[configuration.label] = channel
+
+    var self = this
+
+    channel._udt.onclose = function()
+    {
+      delete self._datachannels[channel.label]
+
+      if(channel.onclose)
+        channel.onclose()
+    }
 
     return channel
   }
