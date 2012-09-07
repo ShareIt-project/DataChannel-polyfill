@@ -20,6 +20,14 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
     this.close = this._udt.close
     this.send  = this._udt.send
 
+    this._udt.onclose = function()
+    {
+      delete this._pc._datachannels[this.label]
+
+      if(this.onclose)
+        this.onclose()
+    }
+
     this.readyState = "connecting"
   }
 
@@ -54,6 +62,11 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
     if(configuration.reliable != undefined)
       channel.reliable = configuration.reliable
+
+    channel._pc = this
+
+    this._datachannels = this._datachannels || {}
+    this._datachannels[configuration.label] = channel
 
     return channel
   }
@@ -130,5 +143,5 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
             if(this.ondatachannel)
                 this.ondatachannel(evt);
         }
-  });
+  }
 }).call(this);
