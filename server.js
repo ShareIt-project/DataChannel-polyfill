@@ -46,6 +46,8 @@ wss.on('connection', function(socket)
                 {
                     socket.send(JSON.stringify(['create.error', socketId]))
                     console.warn("[create] "+socketId+" peer don't exists");
+
+                    socket.close();
                 }
 
                 break
@@ -66,6 +68,8 @@ wss.on('connection', function(socket)
                 {
                     socket.send(JSON.stringify(['ready.error', socketId]))
                     console.warn("[ready] "+socketId+" UDT don't exists");
+
+                    socket.close();
                 }
 
                 break
@@ -82,15 +86,9 @@ wss.on('connection', function(socket)
         if(socket.peer != undefined)
             socket.peer.close();
 
-        // Socket was not connected, close it and remove from sockets list
+        // Socket was not connected, remove it from sockets list
         else
-        {
-            socket.close();
-
-            var index = wss.sockets.indexOf(socket);
-            if(index != -1)
-                wss.sockets.splice(index, 1);
-        }
+            delete wss.sockets[socket.id]
     };
 })
 
