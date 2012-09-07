@@ -28,28 +28,29 @@ wss.on('connection', function(socket)
 
         var eventName = args[0]
         var socketId  = args[1]
-        var udt       = args[2]
 
         var soc = wss.sockets[socketId]
 
         switch(eventName)
         {
-            case 'create':
+            case 'create':  // socketId is the peer ID
                 if(soc)
                 {
+                    socket.id = id()
+                    wss.sockets[socket.id] = socket
+
                     args[1] = socket.id
-                    args.splice(2,1)
                     soc.send(JSON.stringify(args))
                 }
                 else
                 {
                     socket.send(JSON.stringify(['create.error', socketId]))
-                    console.warn("[create] "+socketId+" don't exists");
+                    console.warn("[create] "+socketId+" peer don't exists");
                 }
 
                 break
 
-            case 'ready':
+            case 'ready':   // socketId is the UDT ID
                 if(soc)
                 {
                     socket.peer = soc
@@ -58,16 +59,13 @@ wss.on('connection', function(socket)
                     socket.onmessage = onmessage_proxy
                     soc.onmessage = onmessage_proxy
 
-                    delete wss.sockets[socketId]
-                    delete wss.sockets[socket.id]
-
-                    socket.send('ready')
                     soc.send('ready')
+                    delete wss.sockets[socketId]
                 }
                 else
                 {
                     socket.send(JSON.stringify(['ready.error', socketId]))
-                    console.warn("[ready] "+socketId+" don't exists");
+                    console.warn("[ready] "+socketId+" UDT don't exists");
                 }
 
                 break
@@ -80,8 +78,19 @@ wss.on('connection', function(socket)
     // Peer connection is closed, close the other end
     socket.onclose = function()
     {
+        // Sockets were connected, just close them
         if(socket.peer != undefined)
             socket.peer.close();
+
+        // Socket was not connected, close it and remove from sockets list
+        else
+        {
+            socket.close();
+
+            var index = wss.sockets.indexOf(socket);
+            if(index != -1)
+                wss.sockets.splice(index, 1);
+        }
     };
 })
 

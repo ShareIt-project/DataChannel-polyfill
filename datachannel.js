@@ -32,17 +32,17 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
             {
                 var args = JSON.parse(message.data)
 
-                if(args[0] == 'create' && args[1] == this._peerId)
-                    this._ondatachannel(args[2])
+                if(args[0] == 'create')
+                    this._ondatachannel(args[1], args[2])
             }
 
-            socket.send(JSON.stringify(['setId', id]))
+            socket.send(JSON.stringify(['setId', "pc."+id]))
         }
   }
 
   PeerConnection.prototype._setPeerId = function(peerId)
   {
-    this._peerId = peerId
+    this._peerId = "pc."+peerId
   }
 
   // Add required methods to PeerConnection
@@ -99,21 +99,14 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
             }
           }
 
-          channel.send(JSON.stringify(["create", this._peerId, channel._udt.id,
-                                       configuration]))
+          channel.send(JSON.stringify(["create", this._peerId, configuration]))
         }
 
     return channel
   }
 
-  PeerConnection.prototype._ondatachannel = function(data)
+  PeerConnection.prototype._ondatachannel = function(socketId, data)
   {
-    if(!this._peerId)
-    {
-      console.warn("peerId is not defined")
-      return
-    }
-
     if(this.readyState == "closed")
       return;
 
@@ -128,7 +121,7 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
             channel.readyState = "open"
 
-            channel.send(JSON.stringify(["ready", this._peerId, channel._udt.id]))
+            channel.send(JSON.stringify(["ready", socketId]))
 
             var evt = document.createEvent('Event')
                 evt.initEvent('datachannel', true, true)
