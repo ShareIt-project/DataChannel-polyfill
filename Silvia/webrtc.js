@@ -102,8 +102,10 @@ function connect()
   if(!started && localStream)
   {
     createPeerConnection();
+
     console.log('Adding local stream...');
     peerConn.addStream(localStream);
+
     started = true;
   }
   else
@@ -115,5 +117,6 @@ function hangUp()
   console.log("Hang up.");
   peerConn.close();
   peerConn = null;
+
   started = false;
 }
