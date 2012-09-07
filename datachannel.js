@@ -17,8 +17,8 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
     // Use a WebSocket as 'underlying data transport' to create the DataChannel
     this._udt = new WebSocket(SERVER)
 
-    this.close = this._udt.close
-    this.send  = this._udt.send
+    this.close = function(){this._udt.close()}
+    this.send  = function(data, onerror){this._udt.send(data, onerror)}
 
     this._udt.onclose = function()
     {
