@@ -128,10 +128,12 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
     if(this.readyState == "closed")
       return;
 
+    var self = this
+
     var channel = this._createDataChannel(configuration)
         channel._udt.onopen = function()
         {
-            this._udt.onmessage = function(message)
+            channel._udt.onmessage = function(message)
             {
               if(channel.onmessage)
                 channel.onmessage(message)
@@ -145,8 +147,8 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
                 evt.initEvent('datachannel', true, true)
                 evt.channel = channel
 
-            if(this.ondatachannel)
-                this.ondatachannel(evt);
+            if(self.ondatachannel)
+                self.ondatachannel(evt);
         }
   }
 
