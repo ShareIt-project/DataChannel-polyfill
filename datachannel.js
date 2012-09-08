@@ -24,6 +24,8 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
     this.readyState = "connecting"
   }
 
+  // Create a signalling channel with a WebSocket on the proxy server with the
+  // defined ID and wait for new 'create' messages to create new DataChannels
   PeerConnection.prototype._setId = function(id)
   {
     var self = this
@@ -43,12 +45,13 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
         }
   }
 
+  // Set the PeerConnection peer ID
   PeerConnection.prototype._setPeerId = function(peerId)
   {
     this._peerId = "pc."+peerId
   }
 
-  // Add required methods to PeerConnection
+  // Private DataChannel factory function
   PeerConnection.prototype._createDataChannel = function(configuration)
   {
     var channel = new DataChannel()
@@ -74,6 +77,7 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
     return channel
   }
 
+  // Public function to initiate the creation of a new DataChannel
   PeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
   {
     if(!this._peerId)
@@ -123,6 +127,7 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
     return channel
   }
 
+  // Private function to 'catch' the 'ondatachannel' event
   PeerConnection.prototype._ondatachannel = function(socketId, configuration)
   {
     if(this.readyState == "closed")
@@ -152,6 +157,7 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
         }
   }
 
+  // Get the SDP session ID from a RTCSessionDescription object
   function getId(description)
   {
     var result = description.toSdp().replace(/(\r\n|\n|\r)/gm, '\n')
@@ -159,10 +165,10 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
     var patt1=new RegExp("o=.+");
     var result = patt1.exec(result)
 
-    console.log(result[0])
     return result[0]
   }
 
+  // Overwrite setters to catch the session IDs
   var setLocalDescription  = PeerConnection.prototype.setLocalDescription
   var setRemoteDescription = PeerConnection.prototype.setRemoteDescription
 
