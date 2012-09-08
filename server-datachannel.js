@@ -16,15 +16,15 @@ wss.sockets = {}
 
 wss.on('connection', function(socket)
 {
-    // Message received
+    // Forward raw message to the other peer
     function onmessage_proxy(message)
     {
         socket.peer.send(message.data)
     };
 
+    // Handshake
     socket.onmessage = function(message)
     {
-        console.log("socket.onmessage = '"+message.data+"'")
         var args = JSON.parse(message.data)
 
         var eventName = args[0]
@@ -43,11 +43,12 @@ wss.on('connection', function(socket)
                     args[1] = socket.id
                     soc.send(JSON.stringify(args))
                 }
+
+                // Second peer was not connected
+                // Send error message and close socket
                 else
                 {
                     socket.send(JSON.stringify(['create.error', socketId]))
-                    console.warn("[create] "+socketId+" peer don't exists");
-
                     socket.close();
                 }
 
@@ -56,27 +57,30 @@ wss.on('connection', function(socket)
             case 'ready':   // socketId is the UDT ID
                 if(soc)
                 {
+                    // Link peers and update onmessage event to just forward
                     socket.peer = soc
                     soc.peer = socket
 
                     socket.onmessage = onmessage_proxy
                     soc.onmessage = onmessage_proxy
 
+                    // Send 'ready' signal to the first peer and dettach it
                     soc.send('ready')
                     delete wss.sockets[socketId]
                 }
+
+                // First peer was disconnected
+                // Send error message and close socket
                 else
                 {
                     socket.send(JSON.stringify(['ready.error', socketId]))
-                    console.warn("[ready] "+socketId+" UDT don't exists");
-
                     socket.close();
                 }
 
                 break
 
+            // Register peer signaling socket with this ID
             case 'setId':
-                console.log("setId: "+socketId)
                 wss.sockets[socketId] = socket
         }
     };
