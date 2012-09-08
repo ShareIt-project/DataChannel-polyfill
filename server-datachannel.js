@@ -19,7 +19,7 @@ wss.on('connection', function(socket)
     // Message received
     function onmessage_proxy(message)
     {
-        socket.peer.send(message)
+        socket.peer.send(message.data)
     };
 
     socket.onmessage = function(message)
