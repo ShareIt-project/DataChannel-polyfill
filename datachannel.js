@@ -26,6 +26,8 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
   PeerConnection.prototype._setId = function(id)
   {
+    var self = this
+
     var socket = new WebSocket(SERVER)
         socket.onopen = function()
         {
@@ -34,7 +36,7 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
                 var args = JSON.parse(message.data)
 
                 if(args[0] == 'create')
-                    this._ondatachannel(args[1], args[2])
+                    self._ondatachannel(args[1], args[2])
             }
 
             socket.send(JSON.stringify(['setId', "pc."+id]))
@@ -121,12 +123,12 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
     return channel
   }
 
-  PeerConnection.prototype._ondatachannel = function(socketId, data)
+  PeerConnection.prototype._ondatachannel = function(socketId, configuration)
   {
     if(this.readyState == "closed")
       return;
 
-    var channel = this._createDataChannel(data.configuration)
+    var channel = this._createDataChannel(configuration)
         channel._udt.onopen = function()
         {
             this._udt.onmessage = function(message)
