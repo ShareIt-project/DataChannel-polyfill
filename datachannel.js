@@ -90,6 +90,8 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
     if(dataChannelDict.reliable != undefined)
         configuration['reliable'] = dataChannelDict.reliable;
 
+    var self = this
+
     var channel = this._createDataChannel(configuration)
         channel._udt.onopen = function()
         {
@@ -97,7 +99,7 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
           {
             if(message.data == 'ready')
             {
-              if(this.readyState == "closed")
+              if(self.readyState == "closed")
                 return;
 
               channel._udt.onmessage = function(message)
@@ -113,7 +115,7 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
             }
           }
 
-          channel.send(JSON.stringify(["create", this._peerId, configuration]))
+          channel.send(JSON.stringify(["create", self._peerId, configuration]))
         }
 
     return channel
