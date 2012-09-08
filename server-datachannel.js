@@ -16,8 +16,6 @@ wss.sockets = {}
 
 wss.on('connection', function(socket)
 {
-    console.log("connection")
-
     // Message received
     function onmessage_proxy(message)
     {

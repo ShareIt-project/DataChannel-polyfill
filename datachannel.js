@@ -147,4 +147,32 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
                 this.ondatachannel(evt);
         }
   }
+
+  function getId(description)
+  {
+    var result = description.toSdp().replace(/(\r\n|\n|\r)/gm, '\n')
+
+    var patt1=new RegExp("o=.+");
+    var result = patt1.exec(result)
+
+    console.log(result[0])
+    return result[0]
+  }
+
+  var setLocalDescription  = PeerConnection.prototype.setLocalDescription
+  var setRemoteDescription = PeerConnection.prototype.setRemoteDescription
+
+  PeerConnection.prototype.setLocalDescription = function(type, description)
+  {
+    this._setId(getId(description))
+
+    setLocalDescription.call(this, type, description)
+  }
+
+  PeerConnection.prototype.setRemoteDescription = function(type, description)
+  {
+    this._setPeerId(getId(description))
+
+    setRemoteDescription.call(this, type, description)
+  }
 }).call(this);
