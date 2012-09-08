@@ -6,7 +6,8 @@ var options = {key:  fs.readFileSync('certs/privatekey.pem').toString(),
                ca:  [fs.readFileSync('certs/certrequest.csr').toString()]}
 
 // DataChannel proxy server
-var server = require('https').createServer(options).listen(8002);
+var server = require('http').createServer().listen(8002);
+//var server = require('https').createServer(options).listen(8002);
 var WebSocketServer = require('ws').Server
 var wss = new WebSocketServer({server: server});
 
@@ -15,6 +16,8 @@ wss.sockets = {}
 
 wss.on('connection', function(socket)
 {
+    console.log("connection")
+
     // Message received
     function onmessage_proxy(message)
     {
@@ -75,6 +78,7 @@ wss.on('connection', function(socket)
                 break
 
             case 'setId':
+                console.log("setId: "+socketId)
                 wss.sockets[socketId] = socket
         }
     };

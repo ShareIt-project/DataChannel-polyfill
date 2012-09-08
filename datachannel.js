@@ -9,7 +9,8 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
   console.log("Adding DataChannel polyfill...");
 
-  var SERVER = "wss://localhost:8002"
+  var SERVER = "ws://localhost:8002"
+//  var SERVER = "wss://localhost:8002"
 
   // DataChannel polyfill using WebSockets as 'underlying data transport'
   function DataChannel()
