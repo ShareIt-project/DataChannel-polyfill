@@ -17,9 +17,8 @@ and the server backend at server-datachannel.js (it needs Node.js, obviusly). To
 use it it's a matter of three steps:
 
 1. include the datachannel.js file on a script tag on the head section of yout
-   HTML code (you'll need to modify the server address on datachannel.js since
-   currently it's hardcoded on a variable at the beggining just to make it more
-   transparent to the developer...)
+   HTML code and call to DCPF_install() function giving the backend server URL
+   as parameter
 
 2. run the backend server
 

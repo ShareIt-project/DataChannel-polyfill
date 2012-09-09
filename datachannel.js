@@ -1,22 +1,19 @@
-// Fallbacks for vendor-specific variables until the spec is finalized.
-var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
-
-(function(module)
+function DCPF_install(ws_url)
 {
+  // Fallbacks for vendor-specific variables until the spec is finalized.
+  var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
+
   // Check if browser has support for native WebRTC DataChannel
   if(PeerConnection.prototype.createDataChannel)
     return;
 
   console.log("Adding DataChannel polyfill...");
 
-  var SERVER = "ws://localhost:8002"
-//  var SERVER = "wss://localhost:8002"
-
   // DataChannel polyfill using WebSockets as 'underlying data transport'
   function DataChannel()
   {
     // Use a WebSocket as 'underlying data transport' to create the DataChannel
-    this._udt = new WebSocket(SERVER)
+    this._udt = new WebSocket(ws_url)
 
     this.close = function(){this._udt.close()}
     this.send  = function(data, onerror){this._udt.send(data, onerror)}
@@ -30,7 +27,7 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
   {
     var self = this
 
-    var socket = new WebSocket(SERVER)
+    var socket = new WebSocket(ws_url)
         socket.onopen = function()
         {
             socket.onmessage = function(message)
@@ -185,4 +182,4 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
     setRemoteDescription.call(this, type, description)
   }
-}).call(this);
+}
