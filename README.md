@@ -32,7 +32,7 @@ Future work
 
 * Work using SSL (a problem with the certificates?)
 
-* Detect and llow the coexistence of native and polyfill implementations on the
+* Detect and allow the coexistence of native and polyfill implementations on the
   same network (use polyfill if one of the two ends doesn't support native
   DataChannels)
 

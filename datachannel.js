@@ -1,7 +1,15 @@
 function DCPF_install(ws_url)
 {
   // Fallbacks for vendor-specific variables until the spec is finalized.
-  var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
+  var PeerConnection = window.PeerConnection || window.webkitPeerConnection00 || window.mozPeerConnection;
+
+  // Check if browser has support for WebRTC PeerConnection
+  if(PeerConnection == undefined)
+  {
+    console.error("Your browser doesn't support PeerConnection, please use "+
+                  "one of the latest versions of Chrome/Chromium or Firefox");
+    return;
+  }
 
   // Check if browser has support for native WebRTC DataChannel
   if(PeerConnection.prototype.createDataChannel)
