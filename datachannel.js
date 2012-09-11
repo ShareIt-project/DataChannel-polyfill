@@ -12,8 +12,11 @@ function DCPF_install(ws_url)
   }
 
   // Check if browser has support for native WebRTC DataChannel
-  if(PeerConnection.prototype.createDataChannel)
+  if((new PeerConnection("STUN stun.l.google.com:19302")).createDataChannel)
+  {
+    console.log("Using native DataChannel");
     return;
+  }
 
   console.log("Adding DataChannel polyfill...");
 
