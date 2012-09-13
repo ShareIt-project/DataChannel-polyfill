@@ -1,32 +1,17 @@
 var app = require('express').createServer();
-app.listen(8000);
+    app.listen(8000);
 
 
 //SERVER
 var WebSocketServer = require('ws').Server
+var server = new WebSocketServer({server: app});
 
+attachEvents(server);
 
-// Used for callback publish and subscribe
-if(typeof rtc === "undefined")
-  var rtc = {};
 
 //Array to store connections
 var sockets = [];
 
-var listen = function(server)
-{
-  if(typeof server === 'number')
-    var options = {port: server};
-  else
-    var options = {server: server};
-
-  var manager = new WebSocketServer({server: server});
-
-  manager.rtc = rtc;
-  attachEvents(manager);
-
-  return manager;
-};
 
 function attachEvents(manager)
 {
@@ -177,9 +162,6 @@ function attachEvents(manager)
     sockets.push(socket);
   });
 }
-
-
-var webRTC = listen(app);
 
 
 app.get('/', function(req, res) {
