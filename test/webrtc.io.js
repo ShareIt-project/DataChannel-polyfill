@@ -4,14 +4,13 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00 || w
 var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
 
-(function() {
-
-  var rtc;
-  if ('undefined' === typeof module) {
-    rtc = this.rtc = {};
-  } else {
-    rtc = module.exports = {};
-  }
+(function()
+{
+  var rtc = {};
+  if('undefined' === typeof module)
+    this.rtc = rtc;
+  else
+    module.exports = rtc;
 
 
   // Holds a connection to the server.
@@ -20,22 +19,19 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
   // Holds callbacks for certain events.
   rtc._events = {};
 
-  rtc.on = function(eventName, callback) {
+  rtc.on = function(eventName, callback)
+  {
     rtc._events[eventName] = rtc._events[eventName] || [];
     rtc._events[eventName].push(callback);
   };
 
-  rtc.fire = function(eventName, _) {
+  rtc.fire = function(eventName, _)
+  {
     var events = rtc._events[eventName];
     var args = Array.prototype.slice.call(arguments, 1);
 
-    if (!events) {
-      return;
-    }
-
-    for (var i = 0, len = events.length; i < len; i++) {
+    for(var i = 0; i < events.length; i++)
       events[i].apply(null, args);
-    }
   };
 
   // Holds the STUN server to use for PeerConnections.
@@ -50,58 +46,69 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
   /**
    * Connects to the websocket server.
    */
-  rtc.connect = function(server) {
+  rtc.connect = function(server)
+  {
     rtc._socket = new WebSocket(server);
 
-    rtc._socket.onopen = function() {
-
-      rtc._socket.onmessage = function(msg) {
+    rtc._socket.onopen = function()
+    {
+      rtc._socket.onmessage = function(msg)
+      {
         console.log("RECEIVED: "+msg.data);
 
         var json = JSON.parse(msg.data);
         rtc.fire(json.eventName, json.data);
       };
 
-      rtc._socket.onerror = function(err) {
+      rtc._socket.onerror = function(err)
+      {
         console.log('onerror');
         console.log(err);
       };
 
-      rtc._socket.onclose = function(data) {
+      rtc._socket.onclose = function(data)
+      {
         rtc.fire('disconnect stream', rtc._socket.id);
         delete rtc.peerConnections[rtc._socket.id];
       };
 
-      rtc.on('get_peers', function(data) {
+
+      rtc.on('get_peers', function(data)
+      {
         rtc.connections = data.connections;
         // fire connections event and pass peers
         rtc.fire('connections', rtc.connections);
       });
 
-      rtc.on('receive_ice_candidate', function(data) {
+      rtc.on('receive_ice_candidate', function(data)
+      {
         var candidate = new IceCandidate(data.label, data.candidate);
         rtc.peerConnections[data.socketId].processIceMessage(candidate);
 
         rtc.fire('receive ice candidate', candidate);
       });
 
-      rtc.on('new_peer_connected', function(data) {
+      rtc.on('new_peer_connected', function(data)
+      {
         rtc.connections.push(data.socketId);
 
         rtc.createPeerConnection(data.socketId);
       });
 
-      rtc.on('remove_peer_connected', function(data) {
+      rtc.on('remove_peer_connected', function(data)
+      {
         rtc.fire('disconnect stream', data.socketId);
         delete rtc.peerConnections[data.socketId];
       });
 
-      rtc.on('receive_offer', function(data) {
+      rtc.on('receive_offer', function(data)
+      {
         rtc.receiveOffer(data.socketId, data.sdp);
         rtc.fire('receive offer', data);
       });
 
-      rtc.on('receive_answer', function(data) {
+      rtc.on('receive_answer', function(data)
+      {
         rtc.receiveAnswer(data.socketId, data.sdp);
         rtc.fire('receive answer', data);
       });
@@ -111,14 +118,16 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
   };
 
 
-  rtc.sendOffers = function() {
+  rtc.sendOffers = function()
+  {
     for (var i = 0, len = rtc.connections.length; i < len; i++) {
       var socketId = rtc.connections[i];
       rtc.sendOffer(socketId);
     }
   }
 
-  rtc.createPeerConnections = function() {
+  rtc.createPeerConnections = function()
+  {
     for (var i = 0; i < rtc.connections.length; i++) {
       rtc.createPeerConnection(rtc.connections[i]);
     }
@@ -164,7 +173,8 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
     return pc;
   };
 
-  rtc.sendOffer = function(socketId) {
+  rtc.sendOffer = function(socketId)
+  {
     var pc = rtc.peerConnections[socketId];
     // TODO: Abstract away video: true, audio: true for offers
     var offer = pc.createOffer({
@@ -190,14 +200,16 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
   };
 
 
-  rtc.receiveOffer = function(socketId, sdp) {
+  rtc.receiveOffer = function(socketId, sdp)
+  {
     var pc = rtc.peerConnections[socketId];
     pc.setRemoteDescription(pc.SDP_OFFER, new SessionDescription(sdp));
     rtc.sendAnswer(socketId);
   };
 
 
-  rtc.sendAnswer = function(socketId) {
+  rtc.sendAnswer = function(socketId)
+  {
     var pc = rtc.peerConnections[socketId];
     var offer = pc.remoteDescription;
     // TODO: Abstract away video: true, audio: true for answers
@@ -224,7 +236,8 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
   };
 
 
-  rtc.receiveAnswer = function(socketId, sdp) {
+  rtc.receiveAnswer = function(socketId, sdp)
+  {
     var pc = rtc.peerConnections[socketId];
     pc.setRemoteDescription(pc.SDP_ANSWER, new SessionDescription(sdp));
   };
