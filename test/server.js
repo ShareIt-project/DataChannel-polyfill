@@ -13,22 +13,20 @@ if(typeof rtc === "undefined")
 //Array to store connections
 rtc.sockets = [];
 
-rtc.rooms = {};
+var room = []
 
-var listen = function(server) {
-  var manager;
-  if (typeof server === 'number') { 
-    manager = new WebSocketServer({
-        port: server
-      });
-  } else {
-    manager = new WebSocketServer({
-      server: server
-    });
-  }
+var listen = function(server)
+{
+  if(typeof server === 'number')
+    var options = {port: server};
+  else
+    var options = {server: server};
+
+  var manager = new WebSocketServer({server: server});
 
   manager.rtc = rtc;
   attachEvents(manager);
+
   return manager;
 };
 
@@ -110,35 +108,32 @@ function attachEvents(manager)
     {
       console.log('close');
 
-      // find socket to remove
-      var i = rtc.sockets.indexOf(socket);
       // remove socket
-      rtc.sockets.splice(i, 1);
+      rtc.sockets.splice(rtc.sockets.indexOf(socket), 1);
 
-      // remove from rooms and send remove_peer_connected to all sockets in room
-      for (var key in rtc.rooms)
+      // remove from room and send remove_peer_connected to all sockets in room
+      var index = room.indexOf(socket.id);
+      if(index !== -1)
       {
-        var room = rtc.rooms[key];
-        var exist = room.indexOf(socket.id);
+        room.splice(index, 1);
 
-        if (exist !== -1) {
-          room.splice(room.indexOf(socket.id), 1);
-          for (var j = 0; j < room.length; j++) {
-            console.log(room[j]);
-            var soc = rtc.getSocket(room[j]);
-            soc.send(JSON.stringify({
-              "eventName": "remove_peer_connected",
-              "data": {
-                "socketId": socket.id
-              }
-            }), function(error) {
-              if (error) {
-                console.log(error);
-              }
-            });
-          }
+        for(var j = 0; j < room.length; j++)
+        {
+          console.log(room[j]);
 
-          break;
+          var soc = rtc.getSocket(room[j]);
+          soc.send(JSON.stringify(
+          {
+            "eventName": "remove_peer_connected",
+            "data":
+            {
+              "socketId": socket.id
+            }
+          }), function(error)
+          {
+            if(error)
+              console.log(error);
+          });
         }
       }
     }
@@ -146,13 +141,11 @@ function attachEvents(manager)
     // manages the built-in room functionality
     var connectionsId = [];
 
-    rtc.rooms[""] = rtc.rooms[""] || [];
+    room.push(socket.id);
 
-    rtc.rooms[""].push(socket.id);
-
-    for (var i = 0; i < rtc.rooms[""].length; i++)
+    for(var i = 0; i < room.length; i++)
     {
-      var id = rtc.rooms[""][i];
+      var id = room[i];
 
       if(id != socket.id)
       {
