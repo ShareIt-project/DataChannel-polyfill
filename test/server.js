@@ -7,10 +7,13 @@ var WebSocketServer = require('ws').Server
 
 var iolog = function() {};
 
-for (var i = 0; i < process.argv.length; i++) {
+for(var i = 0; i < process.argv.length; i++)
+{
   var arg = process.argv[i];
-  if (arg === "-debug") {
-    iolog = function(msg) {
+  if(arg === "-debug")
+  {
+    iolog = function(msg)
+    {
       console.log(msg)
     }
     console.log('Debug mode on!');
@@ -19,34 +22,13 @@ for (var i = 0; i < process.argv.length; i++) {
 
 
 // Used for callback publish and subscribe
-if (typeof rtc === "undefined") {
+if(typeof rtc === "undefined")
   var rtc = {};
-}
+
 //Array to store connections
 rtc.sockets = [];
 
 rtc.rooms = {};
-
-// Holds callbacks for certain events.
-rtc._events = {};
-
-rtc.on = function(eventName, callback) {
-  rtc._events[eventName] = rtc._events[eventName] || [];
-  rtc._events[eventName].push(callback);
-};
-
-rtc.fire = function(eventName, _) {
-  var events = rtc._events[eventName];
-  var args = Array.prototype.slice.call(arguments, 1);
-
-  if (!events) {
-    return;
-  }
-
-  for (var i = 0, len = events.length; i < len; i++) {
-    events[i].apply(null, args);
-  }
-};
 
 var listen = function(server) {
   var manager;
@@ -88,13 +70,58 @@ function attachEvents(manager)
 
     rtc.sockets.push(socket);
 
-    socket.on('message', function(msg)
+    socket.onmessage = function(msg)
     {
-      var json = JSON.parse(msg);
-      rtc.fire(json.eventName, json.data, socket);
-    });
+      var json = JSON.parse(msg.data);
 
-    socket.on('close', function()
+      var soc = rtc.getSocket(json.data.socketId);
+      if(soc)
+      {
+	    switch(json.eventName)
+	    {
+		  //Receive ICE candidates and send to the correct socket
+		  case'send_ice_candidate':
+		    msg = {"eventName": "receive_ice_candidate",
+		           "data": {"label": json.data.label,
+		                    "candidate": json.data.candidate,
+		                    "socketId": socket.id
+		                    }
+		           }
+		  break
+
+		  //Receive offer and send to correct socket
+		  case 'send_offer':
+		    msg = {"eventName": "receive_offer",
+		           "data": {"sdp": json.data.sdp,
+		                    "socketId": socket.id
+		                    }
+		           }
+		  break
+
+		  //Receive answer and send to correct socket
+		  case 'send_answer':
+		    msg = {"eventName": "receive_answer",
+		           "data": {"sdp": json.data.sdp,
+		                    "socketId": socket.id
+		                    }
+		           }
+		  break
+
+          default:
+            return
+	    }
+
+        iolog(json.eventName);
+
+        soc.send(JSON.stringify(msg), function(error)
+        {
+          if(error)
+            console.log(error);
+        });
+	  }
+    }
+
+    socket.onclose = function()
     {
       iolog('close');
 
@@ -129,18 +156,18 @@ function attachEvents(manager)
           break;
         }
       }
-    });
+    }
 
     // manages the built-in room functionality
     var connectionsId = [];
-    var roomList = rtc.rooms[""] || [];
 
-    roomList.push(socket.id);
-    rtc.rooms[""] = roomList;
+    rtc.rooms[""] = rtc.rooms[""] || [];
 
-    for (var i = 0; i < roomList.length; i++)
+    rtc.rooms[""].push(socket.id);
+
+    for (var i = 0; i < rtc.rooms[""].length; i++)
     {
-      var id = roomList[i];
+      var id = rtc.rooms[""][i];
 
       if(id != socket.id)
       {
@@ -148,18 +175,17 @@ function attachEvents(manager)
         var soc = rtc.getSocket(id);
 
         // inform the peers that they have a new peer
-        if (soc) {
+        if (soc)
           soc.send(JSON.stringify({
             "eventName": "new_peer_connected",
             "data":{
               "socketId": socket.id
             }
-          }), function(error) {
-            if (error) {
+          }), function(error)
+          {
+            if (error)
               console.log(error);
-            }
           });
-        }
       }
     }
 
@@ -169,71 +195,11 @@ function attachEvents(manager)
       "data": {
         "connections": connectionsId
       }
-    }), function(error) {
-      if (error) {
+    }), function(error)
+    {
+      if (error)
         console.log(error);
-      }
     });
-  });
-
-  //Receive ICE candidates and send to the correct socket
-  rtc.on('send_ice_candidate', function(data, socket) {
-    iolog('send_ice_candidate');
-    var soc = rtc.getSocket(data.socketId);
-
-    if (soc) {
-      soc.send(JSON.stringify({
-        "eventName": "receive_ice_candidate",
-        "data": {
-          "label": data.label,
-          "candidate": data.candidate,
-          "socketId": socket.id
-        }
-      }), function(error) {
-        if (error) {
-          console.log(error);
-        }
-      });
-    }
-  });
-
-  //Receive offer and send to correct socket
-  rtc.on('send_offer', function(data, socket) {
-    iolog('send_offer');
-    var soc = rtc.getSocket(data.socketId);
-
-    if (soc) {
-      soc.send(JSON.stringify({
-        "eventName": "receive_offer",
-        "data": {
-          "sdp": data.sdp,
-          "socketId": socket.id
-      }
-      }), function(error) {
-        if (error) {
-          console.log(error);
-        }
-      });
-    }
-  });
-
-  //Receive answer and send to correct socket
-  rtc.on('send_answer', function(data, socket) {
-    iolog('send_answer');
-    var soc = rtc.getSocket(data.socketId);
-
-    if (soc) {
-      soc.send(JSON.stringify({
-        "eventName": "receive_answer",
-        "data" : {
-          "sdp": data.sdp,
-          "socketId": socket.id
-        }
-      }), function(error) {
-        if(error)
-          console.log(error);
-      });
-    }
   });
 }
 
