@@ -64,15 +64,6 @@ function sanitize(msg) {
   return msg.replace(/</g, '&lt;');
 }
 
-function initFullScreen() { 
-  var button = document.getElementById("fullscreen");
-  button.addEventListener('click', function(event) {
-    var elem = document.getElementById("videos"); 
-    //show full screen 
-    elem.webkitRequestFullScreen();
-  });
-} 
-
 function initNewRoom() {
   var button = document.getElementById("newRoom");
 
@@ -145,7 +136,7 @@ function init() {
       console.log('remove ' + data);
       removeVideo(data);
   });
-  initFullScreen();
+
   initNewRoom();
   initChat();
 }
