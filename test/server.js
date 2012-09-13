@@ -5,21 +5,6 @@ app.listen(8000);
 //SERVER
 var WebSocketServer = require('ws').Server
 
-var iolog = function() {};
-
-for(var i = 0; i < process.argv.length; i++)
-{
-  var arg = process.argv[i];
-  if(arg === "-debug")
-  {
-    iolog = function(msg)
-    {
-      console.log(msg)
-    }
-    console.log('Debug mode on!');
-  }
-}
-
 
 // Used for callback publish and subscribe
 if(typeof rtc === "undefined")
@@ -51,7 +36,7 @@ function attachEvents(manager)
 {
   manager.on('connection', function(socket)
   {
-    iolog('connect');
+    console.log('connect');
 
     // generate a 4 digit hex code randomly
     function S4()
@@ -66,7 +51,7 @@ function attachEvents(manager)
     }
 
     socket.id = id();
-    iolog('new socket got id: ' + socket.id);
+    console.log('new socket got id: ' + socket.id);
 
     rtc.sockets.push(socket);
 
@@ -111,7 +96,7 @@ function attachEvents(manager)
             return
 	    }
 
-        iolog(json.eventName);
+        console.log(json.eventName);
 
         soc.send(JSON.stringify(msg), function(error)
         {
@@ -123,7 +108,7 @@ function attachEvents(manager)
 
     socket.onclose = function()
     {
-      iolog('close');
+      console.log('close');
 
       // find socket to remove
       var i = rtc.sockets.indexOf(socket);
