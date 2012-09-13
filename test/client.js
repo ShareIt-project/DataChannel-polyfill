@@ -1,4 +1,5 @@
-var PeerConnection = window.PeerConnection || window.webkitPeerConnection00 || window.mozPeerConnection;
+var getUserMedia   = navigator.getUserMedia || navigator.webkitGetUserMedia  || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+var PeerConnection = window.PeerConnection  || window.webkitPeerConnection00 || window.mozPeerConnection;
 
 function addToChat(msg, color)
 {
@@ -46,7 +47,16 @@ function init()
 {
   if(PeerConnection)
   {
-    rtc.createStream({"video": false, "audio": true});
+    getUserMedia.call(navigator, {"video": false, "audio": true},
+    function(stream)
+    {
+      rtc.createPeerConnections();
+      rtc.sendOffers();
+    },
+    function()
+    {
+      alert("Could not connect stream.");
+    });
 
 //    rtc.createPeerConnections();
 //    rtc.sendOffers();

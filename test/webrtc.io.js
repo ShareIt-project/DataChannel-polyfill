@@ -2,7 +2,6 @@
 // Fallbacks for vendor-specific variables until the spec is finalized.
 var PeerConnection = window.PeerConnection || window.webkitPeerConnection00 || window.mozPeerConnection;
 var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
-var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
 
 (function()
 {
@@ -213,19 +212,4 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
     });
     pc.startIce();
   };
-
-
-  rtc.createStream = function(options)
-  {
-    getUserMedia.call(navigator, options,
-    function(stream)
-    {
-      rtc.createPeerConnections();
-      rtc.sendOffers();
-    },
-    function()
-    {
-      alert("Could not connect stream.");
-    });
-  }
 }).call(this);
