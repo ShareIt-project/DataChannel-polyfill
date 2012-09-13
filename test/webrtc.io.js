@@ -268,10 +268,4 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
       alert("Could not connect stream.");
     });
   }
-
-
-  rtc.attachStream = function(stream, domId) {
-    document.getElementById(domId).src = URL.createObjectURL(stream);
-  };
-
 }).call(this);
