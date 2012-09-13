@@ -46,7 +46,7 @@ function init()
 {
   if(PeerConnection)
   {
-    rtc.createStream({"video": true, "audio": true});
+    rtc.createStream({"video": false, "audio": true});
 
 //    rtc.createPeerConnections();
 //    rtc.sendOffers();

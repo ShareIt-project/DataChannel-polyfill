@@ -217,13 +217,8 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
   };
 
 
-  rtc.createStream = function(opt)
+  rtc.createStream = function(options)
   {
-    var options = {
-        video: opt.video || false,
-        audio: opt.audio || false
-    };
-
     getUserMedia.call(navigator, options,
     function(stream)
     {
