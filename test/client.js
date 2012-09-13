@@ -60,10 +60,8 @@ function init()
   else
     alert('Your browser is not supported or you have to turn on flags. In chrome you go to chrome://flags and turn on Enable PeerConnection remember to restart chrome');
 
-  var room = window.location.hash.slice(1);
-
   //When using localhost
-  rtc.connect("ws://localhost:8000/", room);
+  rtc.connect("ws://localhost:8000/");
 
   initChat();
 }
