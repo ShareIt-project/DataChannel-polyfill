@@ -126,12 +126,12 @@ function initChat() {
   rtc.on('peer connection opened', function(pc)
   {
     var channel = pc.createDataChannel('chat')
-	    channel.onmessage = function(message)
-	    {
-	      var data = JSON.parse(message.data)
+        channel.onmessage = function(message)
+        {
+          var data = JSON.parse(message.data)
 
-	      addToChat(data.messages, data.color.toString(16));
-	    }
+          addToChat(data.messages, data.color.toString(16));
+        }
   });
 }
 
