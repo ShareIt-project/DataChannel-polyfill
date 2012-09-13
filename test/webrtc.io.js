@@ -40,7 +40,7 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
   // Holds the STUN server to use for PeerConnections.
   rtc.SERVER = "STUN stun.l.google.com:19302";
 
-  // Referenc e to the lone PeerConnection instance.
+  // Reference to the lone PeerConnection instance.
   rtc.peerConnections = {};
 
   // Array of known peer socket ids
@@ -71,7 +71,6 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
 
       rtc._socket.onclose = function(data)
       {
-        rtc.fire('disconnect stream', rtc._socket.id);
         delete rtc.peerConnections[rtc._socket.id];
       };
 
@@ -79,8 +78,6 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
       rtc.on('get_peers', function(data)
       {
         rtc.connections = data.connections;
-        // fire connections event and pass peers
-        rtc.fire('connections', rtc.connections);
       });
 
       rtc.on('receive_ice_candidate', function(data)
@@ -98,7 +95,6 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
 
       rtc.on('remove_peer_connected', function(data)
       {
-        rtc.fire('disconnect stream', data.socketId);
         delete rtc.peerConnections[data.socketId];
       });
 
@@ -140,8 +136,6 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
         var pc = rtc.peerConnections[data.socketId];
         pc.setRemoteDescription(pc.SDP_ANSWER, new SessionDescription(data.sdp));
       });
-
-      rtc.fire('connect');
     };
   };
 
