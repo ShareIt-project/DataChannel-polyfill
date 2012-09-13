@@ -1,21 +1,19 @@
-var videos = [];
 var rooms = [1,2,3,4,5];
 var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
-function addToChat(msg, color) {
-  var messages = document.getElementById('messages');
-  msg = sanitize(msg);
-  if (color) {
-    msg = '<span style="color: ' + color + '; padding-left: 15px">' + msg + '</span>';
-  } else {
-    msg = '<strong style="padding-left: 15px">' + msg + '</strong>';
-  }
-  messages.innerHTML = messages.innerHTML + msg + '<br>';
-  messages.scrollTop = 10000;
-}
+function addToChat(msg, color)
+{
+  // Sanitize the input
+  msg = msg.replace(/</g, '&lt;');
 
-function sanitize(msg) {
-  return msg.replace(/</g, '&lt;');
+  if(color)
+    msg = '<span style="color: ' + color + '; padding-left: 15px">' + msg + '</span>';
+  else
+    msg = '<strong style="padding-left: 15px">' + msg + '</strong>';
+
+  var messages = document.getElementById('messages');
+      messages.innerHTML = messages.innerHTML + msg + '<br>';
+      messages.scrollTop = 10000;
 }
 
 function initNewRoom() {
