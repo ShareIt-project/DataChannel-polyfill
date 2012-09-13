@@ -28,6 +28,9 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
   rtc.fire = function(eventName, _)
   {
     var events = rtc._events[eventName];
+    if(events == undefined)
+        return;
+
     var args = Array.prototype.slice.call(arguments, 1);
 
     for(var i = 0; i < events.length; i++)
@@ -103,14 +106,41 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
 
       rtc.on('receive_offer', function(data)
       {
-        rtc.receiveOffer(data.socketId, data.sdp);
-        rtc.fire('receive offer', data);
+        var pc = rtc.peerConnections[data.socketId];
+        pc.setRemoteDescription(pc.SDP_OFFER, new SessionDescription(data.sdp));
+
+        // Send answer
+        var offer = pc.remoteDescription;
+
+        // TODO: Abstract away video: true, audio: true for answers
+        var answer = pc.createAnswer(offer.toSdp(),
+        {
+          video: true,
+          audio: true
+        });
+
+        pc.setLocalDescription(pc.SDP_ANSWER, answer);
+        rtc._socket.send(JSON.stringify(
+        {
+          "eventName": "send_answer",
+          "data":
+          {
+            "socketId": data.socketId,
+            "sdp": answer.toSdp()
+          }
+        }), function(error)
+        {
+          if(error)
+            console.log(error);
+        });
+
+        pc.startIce();
       });
 
       rtc.on('receive_answer', function(data)
       {
-        rtc.receiveAnswer(data.socketId, data.sdp);
-        rtc.fire('receive answer', data);
+        var pc = rtc.peerConnections[data.socketId];
+        pc.setRemoteDescription(pc.SDP_ANSWER, new SessionDescription(data.sdp));
       });
 
       rtc.fire('connect');
@@ -197,49 +227,6 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
       }
     });
     pc.startIce();
-  };
-
-
-  rtc.receiveOffer = function(socketId, sdp)
-  {
-    var pc = rtc.peerConnections[socketId];
-    pc.setRemoteDescription(pc.SDP_OFFER, new SessionDescription(sdp));
-    rtc.sendAnswer(socketId);
-  };
-
-
-  rtc.sendAnswer = function(socketId)
-  {
-    var pc = rtc.peerConnections[socketId];
-    var offer = pc.remoteDescription;
-    // TODO: Abstract away video: true, audio: true for answers
-    var answer = pc.createAnswer(offer.toSdp(), {
-      video: true,
-      audio: true
-    });
-
-    console.log("rtc.sendAnswer: "+JSON.stringify(answer.toSdp()))
-
-    pc.setLocalDescription(pc.SDP_ANSWER, answer);
-    rtc._socket.send(JSON.stringify({
-      "eventName": "send_answer",
-      "data": {
-        "socketId": socketId,
-        "sdp": answer.toSdp()
-      }
-    }), function(error) {
-      if (error) {
-        console.log(error);
-      }
-    });
-    pc.startIce();
-  };
-
-
-  rtc.receiveAnswer = function(socketId, sdp)
-  {
-    var pc = rtc.peerConnections[socketId];
-    pc.setRemoteDescription(pc.SDP_ANSWER, new SessionDescription(sdp));
   };
 
 
