@@ -87,8 +87,6 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
       {
         var candidate = new IceCandidate(data.label, data.candidate);
         rtc.peerConnections[data.socketId].processIceMessage(candidate);
-
-        rtc.fire('receive ice candidate', candidate);
       });
 
       rtc.on('new_peer_connected', function(data)
@@ -150,17 +148,14 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
 
   rtc.sendOffers = function()
   {
-    for (var i = 0, len = rtc.connections.length; i < len; i++) {
-      var socketId = rtc.connections[i];
-      rtc.sendOffer(socketId);
-    }
+    for(var i = 0; i < rtc.connections.length; i++)
+      rtc.sendOffer(rtc.connections[i]);
   }
 
   rtc.createPeerConnections = function()
   {
-    for (var i = 0; i < rtc.connections.length; i++) {
+    for(var i = 0; i < rtc.connections.length; i++)
       rtc.createPeerConnection(rtc.connections[i]);
-    }
   };
 
   rtc.createPeerConnection = function(id)
@@ -211,8 +206,6 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
       video: true,
       audio: true
     });
-
-    console.log("rtc.sendOffer: "+JSON.stringify(offer.toSdp()))
 
     pc.setLocalDescription(pc.SDP_OFFER, offer);
     rtc._socket.send(JSON.stringify({

@@ -129,13 +129,7 @@ function attachEvents(manager)
           break;
         }
       }
-      // call the disconnect callback
-      rtc.fire('disconnect', rtc);
-
     });
-
-    // call the connect callback
-    rtc.fire('connect', rtc);
 
     // manages the built-in room functionality
     var connectionsId = [];
@@ -200,9 +194,6 @@ function attachEvents(manager)
           console.log(error);
         }
       });
-
-      // call the 'recieve ICE candidate' callback
-      rtc.fire('receive ice candidate', rtc);
     }
   });
 
@@ -224,14 +215,12 @@ function attachEvents(manager)
         }
       });
     }
-    // call the 'send offer' callback
-    rtc.fire('send offer', rtc);
   });
 
   //Receive answer and send to correct socket
   rtc.on('send_answer', function(data, socket) {
     iolog('send_answer');
-    var soc = rtc.getSocket( data.socketId);
+    var soc = rtc.getSocket(data.socketId);
 
     if (soc) {
       soc.send(JSON.stringify({
@@ -241,27 +230,20 @@ function attachEvents(manager)
           "socketId": socket.id
         }
       }), function(error) {
-        if (error) {
+        if(error)
           console.log(error);
-        }
       });
-      rtc.fire('send answer', rtc);
     }
   });
 }
 
-rtc.getSocket = function(id) {
-  var connections = rtc.sockets;
-  if (!connections) {
-    // TODO: Or error, or customize
-    return;
-  }
-
-  for (var i = 0; i < connections.length; i++) {
-    var socket = connections[i];
-    if (id === socket.id) {
+rtc.getSocket = function(id)
+{
+  for(var i = 0; i < rtc.sockets.length; i++)
+  {
+    var socket = rtc.sockets[i];
+    if(id === socket.id)
       return socket;
-    }
   }
 }
 
@@ -287,17 +269,4 @@ app.get('/datachannel.js', function(req, res) {
 
 app.get('/client.js', function(req, res) {
   res.sendfile(__dirname + '/client.js');
-});
-
-
-webRTC.rtc.on('connect', function(rtc) {
-  //Client connected
-});
-
-webRTC.rtc.on('send answer', function(rtc) {
-  //answer sent
-});
-
-webRTC.rtc.on('disconnect', function(rtc) {
-  //Client disconnect 
 });
