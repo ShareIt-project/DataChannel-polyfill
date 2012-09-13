@@ -1,4 +1,4 @@
-var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
+var PeerConnection = window.PeerConnection || window.webkitPeerConnection00 || window.mozPeerConnection;
 
 function initChat()
 {
@@ -53,12 +53,12 @@ function initChat()
 }
 
 
-function init() {
-  if(PeerConnection){
+function init()
+{
+  if(PeerConnection)
     rtc.createStream({"video": true, "audio": true});
-  }else {
+  else
     alert('Your browser is not supported or you have to turn on flags. In chrome you go to chrome://flags and turn on Enable PeerConnection remember to restart chrome');
-  }
 
   var room = window.location.hash.slice(1);
 
