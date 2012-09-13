@@ -60,7 +60,6 @@ function init()
     rtc.createStream({"video": true, "audio": true});
 
 //    rtc.createPeerConnections();
-//    rtc.addStreams();
 //    rtc.sendOffers();
   }
   else

@@ -260,7 +260,6 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
       if(rtc.initializedStreams === rtc.numStreams)
       {
 		rtc.createPeerConnections();
-		rtc.addStreams();
         rtc.sendOffers();
       }
     },
@@ -269,16 +268,6 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
       alert("Could not connect stream.");
     });
   }
-
-
-  rtc.addStreams = function() {
-    for (var i = 0; i < rtc.streams.length; i++) {
-      var stream = rtc.streams[i];
-      for (var connection in rtc.peerConnections) {
-        rtc.peerConnections[connection].addStream(stream);
-      }
-    }
-  };
 
 
   rtc.attachStream = function(stream, domId) {
