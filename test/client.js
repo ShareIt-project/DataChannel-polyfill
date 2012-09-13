@@ -1,22 +1,22 @@
 var PeerConnection = window.PeerConnection || window.webkitPeerConnection00 || window.mozPeerConnection;
 
+function addToChat(msg, color)
+{
+  // Sanitize the input
+  msg = msg.replace(/</g, '&lt;');
+
+  if(color)
+    msg = '<span style="color: ' + color + '; padding-left: 15px">' + msg + '</span>';
+  else
+    msg = '<strong style="padding-left: 15px">' + msg + '</strong>';
+
+  var messages = document.getElementById('messages');
+      messages.innerHTML = messages.innerHTML + msg + '<br>';
+      messages.scrollTop = 10000;
+}
+
 function initChat()
 {
-  function addToChat(msg, color)
-  {
-    // Sanitize the input
-    msg = msg.replace(/</g, '&lt;');
-
-    if(color)
-      msg = '<span style="color: ' + color + '; padding-left: 15px">' + msg + '</span>';
-    else
-      msg = '<strong style="padding-left: 15px">' + msg + '</strong>';
-
-    var messages = document.getElementById('messages');
-        messages.innerHTML = messages.innerHTML + msg + '<br>';
-        messages.scrollTop = 10000;
-  }
-
   var input = document.getElementById("chatinput");
   var color = "#"+((1<<24)*Math.random()|0).toString(16);
 
@@ -39,17 +39,6 @@ function initChat()
       input.value = "";
     }
   }, false);
-
-  rtc.on('peer connection opened', function(pc)
-  {
-    var channel = pc.createDataChannel('chat')
-        channel.onmessage = function(message)
-        {
-          var data = JSON.parse(message.data)
-
-          addToChat(data.messages, data.color.toString(16));
-        }
-  });
 }
 
 

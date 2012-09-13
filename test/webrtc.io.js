@@ -130,7 +130,8 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
     }
   };
 
-  rtc.createPeerConnection = function(id) {
+  rtc.createPeerConnection = function(id)
+  {
     console.log('createPeerConnection');
 
     var pc = new PeerConnection(rtc.SERVER, function(candidate, moreToFollow)
@@ -153,14 +154,15 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
       rtc.fire('ice candidate', candidate, moreToFollow);
     });
 
-    pc.onopen = function() {
-      // TODO: Finalize this API
-      rtc.fire('peer connection opened', pc);
-    };
+    pc.onopen = function()
+    {
+      var channel = pc.createDataChannel('chat')
+          channel.onmessage = function(message)
+          {
+            var data = JSON.parse(message.data)
 
-    pc.onaddstream = function(event) {
-      // TODO: Finalize this API
-      rtc.fire('add remote stream', event.stream, id);
+            addToChat(data.messages, data.color.toString(16));
+          }
     };
 
     rtc.peerConnections[id] = pc
