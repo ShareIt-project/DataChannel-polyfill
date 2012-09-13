@@ -11,7 +11,7 @@ if(typeof rtc === "undefined")
   var rtc = {};
 
 //Array to store connections
-rtc.sockets = [];
+var sockets = [];
 
 var room = []
 
@@ -34,25 +34,6 @@ function attachEvents(manager)
 {
   manager.on('connection', function(socket)
   {
-    console.log('connect');
-
-    // generate a 4 digit hex code randomly
-    function S4()
-    {
-      return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
-    }
-
-    // make a REALLY COMPLICATED AND RANDOM id, kudos to dennis
-    function id()
-    {
-      return S4()+S4() +"-"+ S4() +"-"+ S4() +"-"+ S4() +"-"+ S4()+S4()+S4();
-    }
-
-    socket.id = id();
-    console.log('new socket got id: ' + socket.id);
-
-    rtc.sockets.push(socket);
-
     socket.onmessage = function(msg)
     {
       var json = JSON.parse(msg.data);
@@ -109,7 +90,7 @@ function attachEvents(manager)
       console.log('close');
 
       // remove socket
-      rtc.sockets.splice(rtc.sockets.indexOf(socket), 1);
+      sockets.splice(sockets.indexOf(socket), 1);
 
       // remove from room and send remove_peer_connected to all sockets in room
       var index = room.indexOf(socket.id);
@@ -138,6 +119,23 @@ function attachEvents(manager)
       }
     }
 
+	// generate a 4 digit hex code randomly
+	function S4()
+	{
+	  return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+	}
+
+	// make a REALLY COMPLICATED AND RANDOM id, kudos to dennis
+	function id()
+	{
+	  return S4()+S4() +"-"+ S4() +"-"+ S4() +"-"+ S4() +"-"+ S4()+S4()+S4();
+	}
+
+    socket.id = id();
+    console.log('new socket got id: ' + socket.id);
+
+    sockets.push(socket);
+
     // manages the built-in room functionality
     var connectionsId = [];
 
@@ -153,10 +151,12 @@ function attachEvents(manager)
         var soc = rtc.getSocket(id);
 
         // inform the peers that they have a new peer
-        if (soc)
-          soc.send(JSON.stringify({
+        if(soc)
+          soc.send(JSON.stringify(
+          {
             "eventName": "new_peer_connected",
-            "data":{
+            "data":
+            {
               "socketId": socket.id
             }
           }), function(error)
@@ -168,14 +168,16 @@ function attachEvents(manager)
     }
 
     // send new peer a list of all prior peers
-    socket.send(JSON.stringify({
+    socket.send(JSON.stringify(
+    {
       "eventName": "get_peers",
-      "data": {
+      "data":
+      {
         "connections": connectionsId
       }
     }), function(error)
     {
-      if (error)
+      if(error)
         console.log(error);
     });
   });
@@ -183,9 +185,9 @@ function attachEvents(manager)
 
 rtc.getSocket = function(id)
 {
-  for(var i = 0; i < rtc.sockets.length; i++)
+  for(var i = 0; i < sockets.length; i++)
   {
-    var socket = rtc.sockets[i];
+    var socket = sockets[i];
     if(id === socket.id)
       return socket;
   }
