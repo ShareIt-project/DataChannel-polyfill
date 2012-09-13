@@ -13,8 +13,6 @@ if(typeof rtc === "undefined")
 //Array to store connections
 var sockets = [];
 
-var room = []
-
 var listen = function(server)
 {
   if(typeof server === 'number')
@@ -38,7 +36,17 @@ function attachEvents(manager)
     {
       var json = JSON.parse(msg.data);
 
-      var soc = rtc.getSocket(json.data.socketId);
+	  function getSocket(id)
+	  {
+	    for(var i = 0; i < sockets.length; i++)
+	    {
+	      var socket = sockets[i];
+	      if(id === socket.id)
+	        return socket;
+	    }
+	  }
+
+      var soc = getSocket(json.data.socketId);
       if(soc)
       {
 	    switch(json.eventName)
@@ -89,33 +97,27 @@ function attachEvents(manager)
     {
       console.log('close');
 
-      // remove socket
+      // remove socket and send remove_peer_connected to all other sockets
       sockets.splice(sockets.indexOf(socket), 1);
 
-      // remove from room and send remove_peer_connected to all sockets in room
-      var index = room.indexOf(socket.id);
-      if(index !== -1)
+      for(var i = 0; i < sockets.length; i++)
       {
-        room.splice(index, 1);
+        var soc = sockets[i];
 
-        for(var j = 0; j < room.length; j++)
+        console.log(soc.id);
+
+        soc.send(JSON.stringify(
         {
-          console.log(room[j]);
-
-          var soc = rtc.getSocket(room[j]);
-          soc.send(JSON.stringify(
+          "eventName": "remove_peer_connected",
+          "data":
           {
-            "eventName": "remove_peer_connected",
-            "data":
-            {
-              "socketId": socket.id
-            }
-          }), function(error)
-          {
-            if(error)
-              console.log(error);
-          });
-        }
+            "socketId": socket.id
+          }
+        }), function(error)
+        {
+          if(error)
+            console.log(error);
+        });
       }
     }
 
@@ -134,37 +136,28 @@ function attachEvents(manager)
     socket.id = id();
     console.log('new socket got id: ' + socket.id);
 
-    sockets.push(socket);
-
-    // manages the built-in room functionality
+    // Notify that there's a new peer connected and build a list of peers
     var connectionsId = [];
 
-    room.push(socket.id);
-
-    for(var i = 0; i < room.length; i++)
+    for(var i = 0; i < sockets.length; i++)
     {
-      var id = room[i];
+      var soc = sockets[i];
 
-      if(id != socket.id)
+      connectionsId.push(soc.id);
+
+      // inform the peers that they have a new peer
+      soc.send(JSON.stringify(
       {
-        connectionsId.push(id);
-        var soc = rtc.getSocket(id);
-
-        // inform the peers that they have a new peer
-        if(soc)
-          soc.send(JSON.stringify(
-          {
-            "eventName": "new_peer_connected",
-            "data":
-            {
-              "socketId": socket.id
-            }
-          }), function(error)
-          {
-            if (error)
-              console.log(error);
-          });
-      }
+        "eventName": "new_peer_connected",
+        "data":
+        {
+          "socketId": socket.id
+        }
+      }), function(error)
+      {
+        if (error)
+          console.log(error);
+      });
     }
 
     // send new peer a list of all prior peers
@@ -180,17 +173,9 @@ function attachEvents(manager)
       if(error)
         console.log(error);
     });
-  });
-}
 
-rtc.getSocket = function(id)
-{
-  for(var i = 0; i < sockets.length; i++)
-  {
-    var socket = sockets[i];
-    if(id === socket.id)
-      return socket;
-  }
+    sockets.push(socket);
+  });
 }
 
 
