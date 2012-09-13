@@ -2,14 +2,6 @@ var videos = [];
 var rooms = [1,2,3,4,5];
 var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
-function removeVideo(socketId) {
-  var video = document.getElementById('remote' + socketId);
-  if (video) {
-      videos.splice(videos.indexOf(video), 1);
-      video.parentNode.removeChild(video);
-  }
-}
-
 function addToChat(msg, color) {
   var messages = document.getElementById('messages');
   msg = sanitize(msg);
@@ -91,11 +83,6 @@ function init() {
 
   //When using localhost
   rtc.connect("ws://localhost:8000/", room);
-
-  rtc.on('disconnect stream', function(data) {
-      console.log('remove ' + data);
-      removeVideo(data);
-  });
 
   initNewRoom();
   initChat();
