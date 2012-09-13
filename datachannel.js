@@ -11,12 +11,12 @@ function DCPF_install(ws_url)
     return;
   }
 
-  // Check if browser has support for native WebRTC DataChannel
-  if((new PeerConnection("STUN stun.l.google.com:19302")).createDataChannel)
-  {
-    console.log("Using native DataChannel");
-    return;
-  }
+//  // Check if browser has support for native WebRTC DataChannel
+//  if((new PeerConnection("STUN stun.l.google.com:19302", function(){})).createDataChannel)
+//  {
+//    console.log("Using native DataChannel");
+//    return;
+//  }
 
   console.log("Adding DataChannel polyfill...");
 
