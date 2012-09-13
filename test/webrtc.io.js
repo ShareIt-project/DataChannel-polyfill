@@ -118,12 +118,6 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
     }
   }
 
-  rtc.onClose = function(data) {
-    rtc.on('close_stream', function() {
-      rtc.fire('close_stream', data);
-    });
-  }
-
   rtc.createPeerConnections = function() {
     for (var i = 0; i < rtc.connections.length; i++) {
       rtc.createPeerConnection(rtc.connections[i]);
