@@ -40,15 +40,6 @@ function setWH(video, i) {
   video.style.top = Math.floor(i / perRow) * height + "px";
 }
 
-function cloneVideo(domId, socketId) {
-  var video = document.getElementById(domId);
-  var clone = video.cloneNode(false);
-  clone.id = "remote" + socketId;
-  document.getElementById('videos').appendChild(clone);
-  videos.push(clone);
-  return clone;
-}
-
 function removeVideo(socketId) {
   var video = document.getElementById('remote' + socketId);
   if (video) {
@@ -139,9 +130,6 @@ function initChat() {
 function init() {
   if(PeerConnection){
     rtc.createStream({"video": true, "audio": true}, function(stream) {
-      document.getElementById('you').src = URL.createObjectURL(stream);
-      videos.push(document.getElementById('you'));
-      rtc.attachStream(stream, 'you');
       subdivideVideos();
     });
   }else {
@@ -153,13 +141,6 @@ function init() {
   //When using localhost
   rtc.connect("ws://localhost:8000/", room);
 
-  rtc.on('add remote stream', function(stream, socketId) {
-    console.log("ADDING REMOTE STREAM...");
-    var clone = cloneVideo('you', socketId);
-    document.getElementById(clone.id).setAttribute("class", "");
-    rtc.attachStream(stream, clone.id);
-    subdivideVideos();
-  });
   rtc.on('disconnect stream', function(data) {
       console.log('remove ' + data);
       removeVideo(data);
