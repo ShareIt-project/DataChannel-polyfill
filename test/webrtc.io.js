@@ -54,18 +54,13 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
   /**
    * Connects to the websocket server.
    */
-  rtc.connect = function(server, room) {
-    room = room || ""; // by default, join a room called the blank string
+  rtc.connect = function(server) {
     rtc._socket = new WebSocket(server);
 
     rtc._socket.onopen = function() {
 
-      rtc._socket.send(JSON.stringify({
-        "eventName": "join_room",
-        "data": {
-          "room": room
-        }
-      }), function(error) {
+      rtc._socket.send(JSON.stringify({"eventName": "join_room"}),
+      function(error) {
         if (error) {
           console.log(error);
         }
