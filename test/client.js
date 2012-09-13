@@ -1,21 +1,22 @@
 var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
-function addToChat(msg, color)
+function initChat()
 {
-  // Sanitize the input
-  msg = msg.replace(/</g, '&lt;');
+  function addToChat(msg, color)
+  {
+    // Sanitize the input
+    msg = msg.replace(/</g, '&lt;');
 
-  if(color)
-    msg = '<span style="color: ' + color + '; padding-left: 15px">' + msg + '</span>';
-  else
-    msg = '<strong style="padding-left: 15px">' + msg + '</strong>';
+    if(color)
+      msg = '<span style="color: ' + color + '; padding-left: 15px">' + msg + '</span>';
+    else
+      msg = '<strong style="padding-left: 15px">' + msg + '</strong>';
 
-  var messages = document.getElementById('messages');
-      messages.innerHTML = messages.innerHTML + msg + '<br>';
-      messages.scrollTop = 10000;
-}
+    var messages = document.getElementById('messages');
+        messages.innerHTML = messages.innerHTML + msg + '<br>';
+        messages.scrollTop = 10000;
+  }
 
-function initChat() {
   var input = document.getElementById("chatinput");
   var color = "#"+((1<<24)*Math.random()|0).toString(16);
 
