@@ -1,4 +1,3 @@
-var rooms = [1,2,3,4,5];
 var PeerConnection = window.PeerConnection || window.webkitPeerConnection00;
 
 function addToChat(msg, color)
@@ -14,23 +13,6 @@ function addToChat(msg, color)
   var messages = document.getElementById('messages');
       messages.innerHTML = messages.innerHTML + msg + '<br>';
       messages.scrollTop = 10000;
-}
-
-function initNewRoom() {
-  var button = document.getElementById("newRoom");
-
-  button.addEventListener('click', function(event) {
-    var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
-    var string_length = 8;
-    var randomstring = '';
-    for (var i=0; i<string_length; i++) {
-      var rnum = Math.floor(Math.random() * chars.length);
-      randomstring += chars.substring(rnum,rnum+1);
-    }
-
-    window.location.hash = randomstring;
-    location.reload();
-  })
 }
 
 function initChat() {
@@ -82,6 +64,5 @@ function init() {
   //When using localhost
   rtc.connect("ws://localhost:8000/", room);
 
-  initNewRoom();
   initChat();
 }
