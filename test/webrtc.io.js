@@ -242,34 +242,32 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
   };
 
 
-  rtc.createStream = function(opt, onSuccess, onFail) {
-
-    onSuccess = onSuccess ||
-    function() {};
-    onFail = onFail ||
-    function() {};
-
+  rtc.createStream = function(opt)
+  {
     var options = {
         video: opt.video || false,
         audio: opt.audio || false
     };
 
-    if (getUserMedia) {
-      rtc.numStreams++;
-      getUserMedia.call(navigator, options, function(stream) {
-        rtc.streams.push(stream);
-        rtc.initializedStreams++;
-        onSuccess(stream);
-        if (rtc.initializedStreams === rtc.numStreams) {
-          rtc.fire('ready');
-        }
-      }, function() {
-        alert("Could not connect stream.");
-        onFail();
-      });
-    } else {
-      alert('webRTC is not yet supported in this browser.');
-    }
+    rtc.numStreams++;
+
+    getUserMedia.call(navigator, options,
+    function(stream)
+    {
+      rtc.streams.push(stream);
+      rtc.initializedStreams++;
+
+      if(rtc.initializedStreams === rtc.numStreams)
+      {
+		rtc.createPeerConnections();
+		rtc.addStreams();
+        rtc.sendOffers();
+      }
+    },
+    function()
+    {
+      alert("Could not connect stream.");
+    });
   }
 
 
@@ -286,11 +284,5 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
   rtc.attachStream = function(stream, domId) {
     document.getElementById(domId).src = URL.createObjectURL(stream);
   };
-
-  rtc.on('ready', function() {
-    rtc.createPeerConnections();
-    rtc.addStreams();
-    rtc.sendOffers();
-  });
 
 }).call(this);

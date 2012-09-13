@@ -56,7 +56,13 @@ function initChat()
 function init()
 {
   if(PeerConnection)
+  {
     rtc.createStream({"video": true, "audio": true});
+
+//    rtc.createPeerConnections();
+//    rtc.addStreams();
+//    rtc.sendOffers();
+  }
   else
     alert('Your browser is not supported or you have to turn on flags. In chrome you go to chrome://flags and turn on Enable PeerConnection remember to restart chrome');
 
