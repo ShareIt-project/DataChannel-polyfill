@@ -46,10 +46,6 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
 
   // Array of known peer socket ids
   rtc.connections = [];
-  // Stream-related variables.
-  rtc.streams = [];
-  rtc.numStreams = 0;
-  rtc.initializedStreams = 0;
 
   /**
    * Connects to the websocket server.
@@ -92,11 +88,7 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
       rtc.on('new_peer_connected', function(data) {
         rtc.connections.push(data.socketId);
 
-        var pc = rtc.createPeerConnection(data.socketId);
-        for (var i = 0; i < rtc.streams.length; i++) {
-          var stream = rtc.streams[i];
-          pc.addStream(stream);
-        }
+        rtc.createPeerConnection(data.socketId);
       });
 
       rtc.on('remove_peer_connected', function(data) {
@@ -249,19 +241,11 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
         audio: opt.audio || false
     };
 
-    rtc.numStreams++;
-
     getUserMedia.call(navigator, options,
     function(stream)
     {
-      rtc.streams.push(stream);
-      rtc.initializedStreams++;
-
-      if(rtc.initializedStreams === rtc.numStreams)
-      {
-		rtc.createPeerConnections();
-        rtc.sendOffers();
-      }
+      rtc.createPeerConnections();
+      rtc.sendOffers();
     },
     function()
     {
