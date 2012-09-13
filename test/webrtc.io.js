@@ -172,8 +172,6 @@ var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || nav
           if(error)
             console.log(error);
         });
-
-      rtc.fire('ice candidate', candidate, moreToFollow);
     });
 
     pc.onopen = function()
