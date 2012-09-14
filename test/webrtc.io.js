@@ -15,27 +15,6 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
   // Holds a connection to the server.
   rtc._socket = null;
 
-  // Holds callbacks for certain events.
-  rtc._events = {};
-
-  rtc.on = function(eventName, callback)
-  {
-    rtc._events[eventName] = rtc._events[eventName] || [];
-    rtc._events[eventName].push(callback);
-  };
-
-  rtc.fire = function(eventName, _)
-  {
-    var events = rtc._events[eventName];
-    if(events == undefined)
-        return;
-
-    var args = Array.prototype.slice.call(arguments, 1);
-
-    for(var i = 0; i < events.length; i++)
-      events[i].apply(null, args);
-  };
-
   // Holds the STUN server to use for PeerConnections.
   rtc.SERVER = "STUN stun.l.google.com:19302";
 
@@ -59,7 +38,69 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
         console.log("RECEIVED: "+msg.data);
 
         var json = JSON.parse(msg.data);
-        rtc.fire(json.eventName, json.data);
+
+        switch(json.eventName)
+        {
+	      case 'get_peers':
+	        rtc.connections = json.data.connections;
+	      break
+
+	      case 'receive_ice_candidate':
+	      {
+	        var candidate = new IceCandidate(json.data.label, json.data.candidate);
+	        rtc.peerConnections[json.data.socketId].processIceMessage(candidate);
+	      }
+	      break
+
+	      case 'new_peer_connected':
+	        rtc.connections.push(json.data.socketId);
+	        rtc.createPeerConnection(json.data.socketId);
+	      break
+
+	      case 'remove_peer_connected':
+	        delete rtc.peerConnections[json.data.socketId];
+	      break
+
+	      case 'receive_offer':
+	      {
+	        var pc = rtc.peerConnections[json.data.socketId];
+	        pc.setRemoteDescription(pc.SDP_OFFER, new SessionDescription(json.data.sdp));
+
+	        // Send answer
+	        var offer = pc.remoteDescription;
+
+	        // TODO: Abstract away video: true, audio: true for answers
+	        var answer = pc.createAnswer(offer.toSdp(),
+	        {
+	          video: true,
+	          audio: true
+	        });
+
+	        pc.setLocalDescription(pc.SDP_ANSWER, answer);
+	        rtc._socket.send(JSON.stringify(
+	        {
+	          "eventName": "send_answer",
+	          "data":
+	          {
+	            "socketId": json.data.socketId,
+	            "sdp": answer.toSdp()
+	          }
+	        }), function(error)
+	        {
+	          if(error)
+	            console.log(error);
+	        });
+
+	        pc.startIce();
+	      }
+	      break
+
+	      case 'receive_answer':
+	      {
+	        var pc = rtc.peerConnections[json.data.socketId];
+	        pc.setRemoteDescription(pc.SDP_ANSWER, new SessionDescription(json.data.sdp));
+	      }
+        }
       };
 
       rtc._socket.onerror = function(err)
@@ -72,69 +113,6 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
       {
         delete rtc.peerConnections[rtc._socket.id];
       };
-
-
-      rtc.on('get_peers', function(data)
-      {
-        rtc.connections = data.connections;
-      });
-
-      rtc.on('receive_ice_candidate', function(data)
-      {
-        var candidate = new IceCandidate(data.label, data.candidate);
-        rtc.peerConnections[data.socketId].processIceMessage(candidate);
-      });
-
-      rtc.on('new_peer_connected', function(data)
-      {
-        rtc.connections.push(data.socketId);
-
-        rtc.createPeerConnection(data.socketId);
-      });
-
-      rtc.on('remove_peer_connected', function(data)
-      {
-        delete rtc.peerConnections[data.socketId];
-      });
-
-      rtc.on('receive_offer', function(data)
-      {
-        var pc = rtc.peerConnections[data.socketId];
-        pc.setRemoteDescription(pc.SDP_OFFER, new SessionDescription(data.sdp));
-
-        // Send answer
-        var offer = pc.remoteDescription;
-
-        // TODO: Abstract away video: true, audio: true for answers
-        var answer = pc.createAnswer(offer.toSdp(),
-        {
-          video: true,
-          audio: true
-        });
-
-        pc.setLocalDescription(pc.SDP_ANSWER, answer);
-        rtc._socket.send(JSON.stringify(
-        {
-          "eventName": "send_answer",
-          "data":
-          {
-            "socketId": data.socketId,
-            "sdp": answer.toSdp()
-          }
-        }), function(error)
-        {
-          if(error)
-            console.log(error);
-        });
-
-        pc.startIce();
-      });
-
-      rtc.on('receive_answer', function(data)
-      {
-        var pc = rtc.peerConnections[data.socketId];
-        pc.setRemoteDescription(pc.SDP_ANSWER, new SessionDescription(data.sdp));
-      });
     };
   };
 
