@@ -12,11 +12,11 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
     module.exports = rtc;
 
 
-  // Holds a connection to the server.
-  var socket = null;
-
   // Holds the STUN server to use for PeerConnections.
   var SERVER = "STUN stun.l.google.com:19302";
+
+  // Holds a connection to the server.
+  var socket = null;
 
   // Reference to the lone PeerConnection instance.
   var peerConnections = {};
@@ -117,12 +117,6 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
   };
 
 
-  rtc.sendOffers = function()
-  {
-    for(var i = 0; i < connections.length; i++)
-      rtc.sendOffer(connections[i]);
-  }
-
   rtc.createPeerConnections = function()
   {
     for(var i = 0; i < connections.length; i++)
@@ -166,6 +160,12 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 
     return pc;
   };
+
+  rtc.sendOffers = function()
+  {
+    for(var i = 0; i < connections.length; i++)
+      rtc.sendOffer(connections[i]);
+  }
 
   rtc.sendOffer = function(socketId)
   {
