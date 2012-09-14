@@ -24,9 +24,9 @@ function initChat()
   input.addEventListener('keydown', function(event) {
     var key = event.which || event.keyCode;
     if (key === 13) {
-      for(var peerConnection in rtc.peerConnections)
+      for(var peerConnection in peerConnections)
       {
-        var channel = rtc.peerConnections[peerConnection]._datachannels['chat']
+        var channel = peerConnections[peerConnection]._datachannels['chat']
         if(channel)
           channel.send(JSON.stringify({"messages": input.value, "color": color}),
           function(error)
