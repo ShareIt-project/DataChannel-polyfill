@@ -63,30 +63,20 @@ function signalling_channel(server)
           }
         break
 
-        case 'new_peer_connected':
-          createPeerConnection(json.data.socketId);
-        break
-
-        case 'remove_peer_connected':
-          delete peerConnections[json.data.socketId];
-        break
-
         case 'receive_offer':
         {
           var pc = peerConnections[json.data.socketId];
           pc.setRemoteDescription(pc.SDP_OFFER, new SessionDescription(json.data.sdp));
 
           // Send answer
-          var offer = pc.remoteDescription;
 
           // TODO: Abstract away video: true, audio: true for answers
-          var answer = pc.createAnswer(offer.toSdp(),
+          var answer = pc.createAnswer(pc.remoteDescription.toSdp(),
           {
             video: true,
             audio: true
           });
 
-          pc.setLocalDescription(pc.SDP_ANSWER, answer);
           socket.send(JSON.stringify(
           {
             "eventName": "send_answer",
@@ -100,6 +90,8 @@ function signalling_channel(server)
             if(error)
               console.log(error);
           });
+
+          pc.setLocalDescription(pc.SDP_ANSWER, answer);
         }
         break
 
@@ -108,6 +100,14 @@ function signalling_channel(server)
           var pc = peerConnections[json.data.socketId];
           pc.setRemoteDescription(pc.SDP_ANSWER, new SessionDescription(json.data.sdp));
         }
+
+        case 'new_peer_connected':
+          createPeerConnection(json.data.socketId);
+        break
+
+        case 'remove_peer_connected':
+          delete peerConnections[json.data.socketId];
+        break
       }
     };
 
