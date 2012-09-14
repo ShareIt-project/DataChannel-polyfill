@@ -19,7 +19,7 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
   rtc.SERVER = "STUN stun.l.google.com:19302";
 
   // Reference to the lone PeerConnection instance.
-  rtc.peerConnections = {};
+  var peerConnections = {};
 
   // Array of known peer socket ids
   var connections = [];
@@ -48,7 +48,7 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 	      case 'receive_ice_candidate':
 	      {
 	        var candidate = new IceCandidate(json.data.label, json.data.candidate);
-	        rtc.peerConnections[json.data.socketId].processIceMessage(candidate);
+	        peerConnections[json.data.socketId].processIceMessage(candidate);
 	      }
 	      break
 
@@ -58,12 +58,12 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 	      break
 
 	      case 'remove_peer_connected':
-	        delete rtc.peerConnections[json.data.socketId];
+	        delete peerConnections[json.data.socketId];
 	      break
 
 	      case 'receive_offer':
 	      {
-	        var pc = rtc.peerConnections[json.data.socketId];
+	        var pc = peerConnections[json.data.socketId];
 	        pc.setRemoteDescription(pc.SDP_OFFER, new SessionDescription(json.data.sdp));
 
 	        // Send answer
@@ -97,7 +97,7 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 
 	      case 'receive_answer':
 	      {
-	        var pc = rtc.peerConnections[json.data.socketId];
+	        var pc = peerConnections[json.data.socketId];
 	        pc.setRemoteDescription(pc.SDP_ANSWER, new SessionDescription(json.data.sdp));
 	      }
         }
@@ -111,7 +111,7 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 
       socket.onclose = function(data)
       {
-        delete rtc.peerConnections[socket.id];
+        delete peerConnections[socket.id];
       };
     };
   };
@@ -162,14 +162,14 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
           }
     };
 
-    rtc.peerConnections[id] = pc
+    peerConnections[id] = pc
 
     return pc;
   };
 
   rtc.sendOffer = function(socketId)
   {
-    var pc = rtc.peerConnections[socketId];
+    var pc = peerConnections[socketId];
 
     // TODO: Abstract away video: true, audio: true for offers
     var offer = pc.createOffer({
