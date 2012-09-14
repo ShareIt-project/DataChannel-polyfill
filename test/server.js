@@ -10,10 +10,6 @@ app.get('/style.css', function(req, res) {
   res.sendfile(__dirname + '/style.css');
 });
 
-app.get('/webrtc.io.js', function(req, res) {
-  res.sendfile(__dirname + '/webrtc.io.js');
-});
-
 app.get('/datachannel.js', function(req, res) {
   res.sendfile(__dirname + '/datachannel.js');
 });

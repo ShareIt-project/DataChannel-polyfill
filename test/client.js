@@ -1,4 +1,13 @@
-var PeerConnection = window.PeerConnection  || window.webkitPeerConnection00 || window.mozPeerConnection;
+var PeerConnection = window.PeerConnection  || window.webkitPeerConnection00;
+    PeerConnection = PeerConnection         || window.mozPeerConnection;
+
+
+// Holds the STUN server to use for PeerConnections.
+var SERVER = "STUN stun.l.google.com:19302";
+
+// Reference to the lone PeerConnection instance.
+var peerConnections = {};
+
 
 function addToChat(msg, color)
 {
@@ -44,13 +53,137 @@ function initChat()
 }
 
 
-function init()
+function createPeerConnection(id)
+{
+  console.log('createPeerConnection');
+
+  var pc = new PeerConnection(SERVER, function(candidate, moreToFollow){});
+
+  pc.onopen = function()
+  {
+    var channel = pc.createDataChannel('chat')
+        channel.onmessage = function(message)
+        {
+          var data = JSON.parse(message.data)
+
+          addToChat(data.messages, data.color.toString(16));
+        }
+  };
+
+  peerConnections[id] = pc
+
+  return pc;
+}
+
+
+document.addEventListener('load', function()
 {
   if(!PeerConnection)
-    alert('Your browser is not supported or you have to turn on flags. In chrome you go to chrome://flags and turn on Enable PeerConnection remember to restart chrome');
+    alert('Your browser is not supported or you have to turn on flags. In '+
+          'chrome you go to chrome://flags and turn on Enable PeerConnection '+
+          'remember to restart chrome');
 
-  // Set the signalling channel and start communications
-  signalling_channel("ws://localhost:8000/");
+  var socket = new WebSocket("ws://localhost:8000/");
+	  socket.onopen = function()
+	  {
+	    socket.onmessage = function(msg)
+	    {
+	      console.log("RECEIVED: "+msg.data);
+
+	      var json = JSON.parse(msg.data);
+
+	      switch(json.eventName)
+	      {
+	        case 'get_peers':
+	          var connections = json.data.connections;
+
+	          for(var i = 0; i < connections.length; i++)
+	          {
+	            // Create PeerConnection
+	            var pc = createPeerConnection(connections[i]);
+
+	            // Send offer to new PeerConnection
+
+	            // TODO: Abstract away video: true, audio: true for offers
+	            var offer = pc.createOffer({
+	              video: true,
+	              audio: true
+	            });
+
+	            socket.send(JSON.stringify(
+	            {
+	              "eventName": "send_offer",
+	              "data":
+	              {
+	                "socketId": connections[i],
+	                "sdp": offer.toSdp()
+	              }
+	            }), function(error)
+	            {
+	              if(error)
+	                console.log(error);
+	            });
+
+	            pc.setLocalDescription(pc.SDP_OFFER, offer);
+	          }
+	        break
+
+	        case 'receive_offer':
+	        {
+	          var pc = peerConnections[json.data.socketId];
+	          pc.setRemoteDescription(pc.SDP_OFFER,
+	                                  new SessionDescription(json.data.sdp));
+
+	          // Send answer
+
+	          // TODO: Abstract away video: true, audio: true for answers
+	          var answer = pc.createAnswer(pc.remoteDescription.toSdp(),
+	          {
+	            video: true,
+	            audio: true
+	          });
+
+	          socket.send(JSON.stringify(
+	          {
+	            "eventName": "send_answer",
+	            "data":
+	            {
+	              "socketId": json.data.socketId,
+	              "sdp": answer.toSdp()
+	            }
+	          }), function(error)
+	          {
+	            if(error)
+	              console.log(error);
+	          });
+
+	          pc.setLocalDescription(pc.SDP_ANSWER, answer);
+	        }
+	        break
+
+	        case 'receive_answer':
+	        {
+	          var pc = peerConnections[json.data.socketId];
+	          pc.setRemoteDescription(pc.SDP_ANSWER,
+	                                  new SessionDescription(json.data.sdp));
+	        }
+
+	        case 'new_peer_connected':
+	          createPeerConnection(json.data.socketId);
+	        break
+
+	        case 'remove_peer_connected':
+	          delete peerConnections[json.data.socketId];
+	        break
+	      }
+	    };
+
+	    socket.onerror = function(err)
+	    {
+	      console.log('onerror: '+err);
+	    };
+	  };
+
 
   initChat();
-}
+})
