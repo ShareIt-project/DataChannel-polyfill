@@ -39,7 +39,7 @@ rtc.connect = function(server)
           for(var i = 0; i < connections.length; i++)
           {
             // Create PeerConnection
-            var pc = rtc.createPeerConnection(connections[i]);
+            var pc = createPeerConnection(connections[i]);
 
             // Send offer to new PeerConnection
 
@@ -76,7 +76,7 @@ rtc.connect = function(server)
         break
 
         case 'new_peer_connected':
-          rtc.createPeerConnection(json.data.socketId);
+          createPeerConnection(json.data.socketId);
         break
 
         case 'remove_peer_connected':
@@ -136,43 +136,43 @@ rtc.connect = function(server)
       delete peerConnections[socket.id];
     };
   };
-};
 
 
-rtc.createPeerConnection = function(id)
-{
-  console.log('createPeerConnection');
-
-  var pc = new PeerConnection(SERVER, function(candidate, moreToFollow)
+  function createPeerConnection(id)
   {
-    if(candidate)
-      socket.send(JSON.stringify(
-      {
-        "eventName": "send_ice_candidate",
-        "data": {"label": candidate.label,
-                 "candidate": candidate.toSdp(),
-                 "socketId": id
-                }
-      }),
-      function(error)
-      {
-        if(error)
-          console.log(error);
-      });
-  });
+    console.log('createPeerConnection');
 
-  pc.onopen = function()
-  {
-    var channel = pc.createDataChannel('chat')
-        channel.onmessage = function(message)
+    var pc = new PeerConnection(SERVER, function(candidate, moreToFollow)
+    {
+      if(candidate)
+        socket.send(JSON.stringify(
         {
-          var data = JSON.parse(message.data)
+          "eventName": "send_ice_candidate",
+          "data": {"label": candidate.label,
+                   "candidate": candidate.toSdp(),
+                   "socketId": id
+                  }
+        }),
+        function(error)
+        {
+          if(error)
+            console.log(error);
+        });
+    });
 
-          addToChat(data.messages, data.color.toString(16));
-        }
-  };
+    pc.onopen = function()
+    {
+      var channel = pc.createDataChannel('chat')
+          channel.onmessage = function(message)
+          {
+            var data = JSON.parse(message.data)
 
-  peerConnections[id] = pc
+            addToChat(data.messages, data.color.toString(16));
+          }
+    };
 
-  return pc;
-}
+    peerConnections[id] = pc
+
+    return pc;
+  }
+};
