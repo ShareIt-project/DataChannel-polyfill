@@ -16,7 +16,7 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
   var socket = null;
 
   // Holds the STUN server to use for PeerConnections.
-  rtc.SERVER = "STUN stun.l.google.com:19302";
+  var SERVER = "STUN stun.l.google.com:19302";
 
   // Reference to the lone PeerConnection instance.
   var peerConnections = {};
@@ -133,7 +133,7 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
   {
     console.log('createPeerConnection');
 
-    var pc = new PeerConnection(rtc.SERVER, function(candidate, moreToFollow)
+    var pc = new PeerConnection(SERVER, function(candidate, moreToFollow)
     {
       if(candidate)
         socket.send(JSON.stringify(
