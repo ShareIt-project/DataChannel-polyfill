@@ -38,8 +38,33 @@ rtc.connect = function(server)
 
           for(var i = 0; i < connections.length; i++)
           {
-            rtc.createPeerConnection(connections[i]);
-            rtc.sendOffer(connections[i]);
+            // Create PeerConnection
+            var pc = rtc.createPeerConnection(connections[i]);
+
+            // Send offer to new PeerConnection
+
+			// TODO: Abstract away video: true, audio: true for offers
+			var offer = pc.createOffer({
+			  video: true,
+			  audio: true
+			});
+
+			pc.setLocalDescription(pc.SDP_OFFER, offer);
+			socket.send(JSON.stringify(
+			{
+			  "eventName": "send_offer",
+			  "data":
+			  {
+			    "socketId": connections[i],
+			    "sdp": offer.toSdp()
+			  }
+			}), function(error)
+			{
+			  if(error)
+			    console.log(error);
+			});
+
+			pc.startIce();
           }
         break
 
@@ -150,32 +175,4 @@ rtc.createPeerConnection = function(id)
   peerConnections[id] = pc
 
   return pc;
-};
-
-rtc.sendOffer = function(socketId)
-{
-  var pc = peerConnections[socketId];
-
-  // TODO: Abstract away video: true, audio: true for offers
-  var offer = pc.createOffer({
-    video: true,
-    audio: true
-  });
-
-  pc.setLocalDescription(pc.SDP_OFFER, offer);
-  socket.send(JSON.stringify(
-  {
-    "eventName": "send_offer",
-    "data":
-    {
-      "socketId": socketId,
-      "sdp": offer.toSdp()
-    }
-  }), function(error)
-  {
-    if(error)
-      console.log(error);
-  });
-
-  pc.startIce();
-};
+}
