@@ -20,9 +20,11 @@ function initChat()
   var input = document.getElementById("chatinput");
   var color = "#"+((1<<24)*Math.random()|0).toString(16);
 
-  input.addEventListener('keydown', function(event) {
+  input.addEventListener('keydown', function(event)
+  {
     var key = event.which || event.keyCode;
-    if (key === 13) {
+    if(key === 13)
+    {
       for(var peerConnection in peerConnections)
       {
         var channel = peerConnections[peerConnection]._datachannels['chat']

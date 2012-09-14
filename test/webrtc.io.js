@@ -4,17 +4,18 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00 || w
 var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 
 
+// Holds the STUN server to use for PeerConnections.
+var SERVER = "STUN stun.l.google.com:19302";
+
+// Reference to the lone PeerConnection instance.
+var peerConnections = {};
+
+
 /**
  * Connects to the websocket server.
  */
 function signalling_channel(server)
 {
-  // Holds the STUN server to use for PeerConnections.
-  var SERVER = "STUN stun.l.google.com:19302";
-
-  // Reference to the lone PeerConnection instance.
-  var peerConnections = {};
-
   // Holds a connection to the server.
   var socket = new WebSocket(server);
 
@@ -44,7 +45,6 @@ function signalling_channel(server)
 			  audio: true
 			});
 
-			pc.setLocalDescription(pc.SDP_OFFER, offer);
 			socket.send(JSON.stringify(
 			{
 			  "eventName": "send_offer",
@@ -59,7 +59,9 @@ function signalling_channel(server)
 			    console.log(error);
 			});
 
-			pc.startIce();
+            pc.setLocalDescription(pc.SDP_OFFER, offer);
+
+            pc.startIce();
           }
         break
 
@@ -122,13 +124,7 @@ function signalling_channel(server)
 
     socket.onerror = function(err)
     {
-      console.log('onerror');
-      console.log(err);
-    };
-
-    socket.onclose = function(data)
-    {
-      delete peerConnections[socket.id];
+      console.log('onerror: '+err);
     };
   };
 
