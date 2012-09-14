@@ -22,7 +22,7 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
   rtc.peerConnections = {};
 
   // Array of known peer socket ids
-  rtc.connections = [];
+  var connections = [];
 
   /**
    * Connects to the websocket server.
@@ -42,7 +42,7 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
         switch(json.eventName)
         {
 	      case 'get_peers':
-	        rtc.connections = json.data.connections;
+	        connections = json.data.connections;
 	      break
 
 	      case 'receive_ice_candidate':
@@ -53,7 +53,7 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 	      break
 
 	      case 'new_peer_connected':
-	        rtc.connections.push(json.data.socketId);
+	        connections.push(json.data.socketId);
 	        rtc.createPeerConnection(json.data.socketId);
 	      break
 
@@ -119,14 +119,14 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 
   rtc.sendOffers = function()
   {
-    for(var i = 0; i < rtc.connections.length; i++)
-      rtc.sendOffer(rtc.connections[i]);
+    for(var i = 0; i < connections.length; i++)
+      rtc.sendOffer(connections[i]);
   }
 
   rtc.createPeerConnections = function()
   {
-    for(var i = 0; i < rtc.connections.length; i++)
-      rtc.createPeerConnection(rtc.connections[i]);
+    for(var i = 0; i < connections.length; i++)
+      rtc.createPeerConnection(connections[i]);
   };
 
   rtc.createPeerConnection = function(id)
