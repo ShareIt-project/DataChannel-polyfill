@@ -13,7 +13,7 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 
 
   // Holds a connection to the server.
-  rtc._socket = null;
+  var socket = null;
 
   // Holds the STUN server to use for PeerConnections.
   rtc.SERVER = "STUN stun.l.google.com:19302";
@@ -29,11 +29,11 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
    */
   rtc.connect = function(server)
   {
-    rtc._socket = new WebSocket(server);
+    socket = new WebSocket(server);
 
-    rtc._socket.onopen = function()
+    socket.onopen = function()
     {
-      rtc._socket.onmessage = function(msg)
+      socket.onmessage = function(msg)
       {
         console.log("RECEIVED: "+msg.data);
 
@@ -77,7 +77,7 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 	        });
 
 	        pc.setLocalDescription(pc.SDP_ANSWER, answer);
-	        rtc._socket.send(JSON.stringify(
+	        socket.send(JSON.stringify(
 	        {
 	          "eventName": "send_answer",
 	          "data":
@@ -103,15 +103,15 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
         }
       };
 
-      rtc._socket.onerror = function(err)
+      socket.onerror = function(err)
       {
         console.log('onerror');
         console.log(err);
       };
 
-      rtc._socket.onclose = function(data)
+      socket.onclose = function(data)
       {
-        delete rtc.peerConnections[rtc._socket.id];
+        delete rtc.peerConnections[socket.id];
       };
     };
   };
@@ -136,7 +136,7 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
     var pc = new PeerConnection(rtc.SERVER, function(candidate, moreToFollow)
     {
       if(candidate)
-        rtc._socket.send(JSON.stringify(
+        socket.send(JSON.stringify(
         {
           "eventName": "send_ice_candidate",
           "data": {"label": candidate.label,
@@ -170,6 +170,7 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
   rtc.sendOffer = function(socketId)
   {
     var pc = rtc.peerConnections[socketId];
+
     // TODO: Abstract away video: true, audio: true for offers
     var offer = pc.createOffer({
       video: true,
@@ -177,17 +178,20 @@ var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
     });
 
     pc.setLocalDescription(pc.SDP_OFFER, offer);
-    rtc._socket.send(JSON.stringify({
+    socket.send(JSON.stringify(
+    {
       "eventName": "send_offer",
-      "data": {
+      "data":
+      {
         "socketId": socketId,
         "sdp": offer.toSdp()
       }
-    }), function(error) {
-      if (error) {
+    }), function(error)
+    {
+      if(error)
         console.log(error);
-      }
     });
+
     pc.startIce();
   };
 }).call(this);
