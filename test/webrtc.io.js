@@ -3,8 +3,6 @@
 var PeerConnection = window.PeerConnection || window.webkitPeerConnection00 || window.mozPeerConnection;
 var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 
-var rtc = {};
-
 
 // Holds the STUN server to use for PeerConnections.
 var SERVER = "STUN stun.l.google.com:19302";
@@ -15,8 +13,8 @@ var socket = null;
 // Reference to the lone PeerConnection instance.
 var peerConnections = {};
 
-// Array of known peer socket ids
-var connections = [];
+
+var rtc = {};
 
 /**
  * Connects to the websocket server.
@@ -36,7 +34,13 @@ rtc.connect = function(server)
       switch(json.eventName)
       {
         case 'get_peers':
-          connections = json.data.connections;
+          var connections = json.data.connections;
+
+          for(var i = 0; i < connections.length; i++)
+          {
+            rtc.createPeerConnection(connections[i]);
+            rtc.sendOffer(connections[i]);
+          }
         break
 
         case 'receive_ice_candidate':
@@ -47,7 +51,6 @@ rtc.connect = function(server)
         break
 
         case 'new_peer_connected':
-          connections.push(json.data.socketId);
           rtc.createPeerConnection(json.data.socketId);
         break
 
@@ -111,12 +114,6 @@ rtc.connect = function(server)
 };
 
 
-rtc.createPeerConnections = function()
-{
-  for(var i = 0; i < connections.length; i++)
-    rtc.createPeerConnection(connections[i]);
-};
-
 rtc.createPeerConnection = function(id)
 {
   console.log('createPeerConnection');
@@ -154,12 +151,6 @@ rtc.createPeerConnection = function(id)
 
   return pc;
 };
-
-rtc.sendOffers = function()
-{
-  for(var i = 0; i < connections.length; i++)
-    rtc.sendOffer(connections[i]);
-}
 
 rtc.sendOffer = function(socketId)
 {

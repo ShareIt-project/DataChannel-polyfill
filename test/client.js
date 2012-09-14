@@ -48,18 +48,11 @@ function init()
   if(PeerConnection)
   {
     getUserMedia.call(navigator, {"video": false, "audio": true},
-    function(stream)
-    {
-      rtc.createPeerConnections();
-      rtc.sendOffers();
-    },
+    function(stream){},
     function()
     {
       alert("Could not connect stream.");
     });
-
-//    rtc.createPeerConnections();
-//    rtc.sendOffers();
   }
   else
     alert('Your browser is not supported or you have to turn on flags. In chrome you go to chrome://flags and turn on Enable PeerConnection remember to restart chrome');
