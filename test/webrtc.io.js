@@ -4,24 +4,19 @@ var PeerConnection = window.PeerConnection || window.webkitPeerConnection00 || w
 var URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 
 
-// Holds the STUN server to use for PeerConnections.
-var SERVER = "STUN stun.l.google.com:19302";
-
-// Holds a connection to the server.
-var socket = null;
-
-// Reference to the lone PeerConnection instance.
-var peerConnections = {};
-
-
-var rtc = {};
-
 /**
  * Connects to the websocket server.
  */
-rtc.connect = function(server)
+function signalling_channel(server)
 {
-  socket = new WebSocket(server);
+  // Holds the STUN server to use for PeerConnections.
+  var SERVER = "STUN stun.l.google.com:19302";
+
+  // Reference to the lone PeerConnection instance.
+  var peerConnections = {};
+
+  // Holds a connection to the server.
+  var socket = new WebSocket(server);
 
   socket.onopen = function()
   {

@@ -1,4 +1,3 @@
-var getUserMedia   = navigator.getUserMedia || navigator.webkitGetUserMedia  || navigator.mozGetUserMedia || navigator.msGetUserMedia;
 var PeerConnection = window.PeerConnection  || window.webkitPeerConnection00 || window.mozPeerConnection;
 
 function addToChat(msg, color)
@@ -48,8 +47,8 @@ function init()
   if(!PeerConnection)
     alert('Your browser is not supported or you have to turn on flags. In chrome you go to chrome://flags and turn on Enable PeerConnection remember to restart chrome');
 
-  //When using localhost
-  rtc.connect("ws://localhost:8000/");
+  // Set the signalling channel and start communications
+  signalling_channel("ws://localhost:8000/");
 
   initChat();
 }
