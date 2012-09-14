@@ -65,13 +65,6 @@ function signalling_channel(server)
           }
         break
 
-        case 'receive_ice_candidate':
-        {
-          var candidate = new IceCandidate(json.data.label, json.data.candidate);
-          peerConnections[json.data.socketId].processIceMessage(candidate);
-        }
-        break
-
         case 'new_peer_connected':
           createPeerConnection(json.data.socketId);
         break
@@ -133,23 +126,7 @@ function signalling_channel(server)
   {
     console.log('createPeerConnection');
 
-    var pc = new PeerConnection(SERVER, function(candidate, moreToFollow)
-    {
-      if(candidate)
-        socket.send(JSON.stringify(
-        {
-          "eventName": "send_ice_candidate",
-          "data": {"label": candidate.label,
-                   "candidate": candidate.toSdp(),
-                   "socketId": id
-                  }
-        }),
-        function(error)
-        {
-          if(error)
-            console.log(error);
-        });
-    });
+    var pc = new PeerConnection(SERVER, function(candidate, moreToFollow){});
 
     pc.onopen = function()
     {

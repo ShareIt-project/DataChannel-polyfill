@@ -52,16 +52,6 @@ wss.on('connection', function(socket)
     {
 	  switch(json.eventName)
 	  {
-		//Receive ICE candidates and send to the correct socket
-		case'send_ice_candidate':
-		  msg = {"eventName": "receive_ice_candidate",
-		         "data": {"label": json.data.label,
-		                  "candidate": json.data.candidate,
-		                  "socketId": socket.id
-		                  }
-		         }
-		break
-
 		//Receive offer and send to correct socket
 		case 'send_offer':
 		  msg = {"eventName": "receive_offer",
