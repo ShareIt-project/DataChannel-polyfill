@@ -60,8 +60,6 @@ function signalling_channel(server)
 			});
 
             pc.setLocalDescription(pc.SDP_OFFER, offer);
-
-            pc.startIce();
           }
         break
 
@@ -102,8 +100,6 @@ function signalling_channel(server)
             if(error)
               console.log(error);
           });
-
-          pc.startIce();
         }
         break
 
