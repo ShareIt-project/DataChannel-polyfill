@@ -112,12 +112,7 @@ window.addEventListener('load', function()
 	            var pc = createPeerConnection(connections[i]);
 
 	            // Send offer to new PeerConnection
-
-	            // TODO: Abstract away video: true, audio: true for offers
-	            var offer = pc.createOffer({
-	              video: true,
-	              audio: true
-	            });
+	            var offer = pc.createOffer();
 
 	            socket.send(JSON.stringify(
 	            {
@@ -143,13 +138,7 @@ window.addEventListener('load', function()
 	                                  new SessionDescription(json.data.sdp));
 
 	          // Send answer
-
-	          // TODO: Abstract away video: true, audio: true for answers
-	          var answer = pc.createAnswer(pc.remoteDescription.toSdp(),
-	          {
-	            video: true,
-	            audio: true
-	          });
+	          var answer = pc.createAnswer(pc.remoteDescription.toSdp());
 
 	          socket.send(JSON.stringify(
 	          {
