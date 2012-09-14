@@ -1,6 +1,11 @@
 var PeerConnection = window.PeerConnection  || window.webkitPeerConnection00;
     PeerConnection = PeerConnection         || window.mozPeerConnection;
 
+if(PeerConnection == undefined)
+  alert('Your browser is not supported or you have to turn on flags. In chrome'+
+        ' you go to chrome://flags and turn on Enable PeerConnection remember '+
+        'to restart chrome');
+
 
 // Holds the STUN server to use for PeerConnections.
 var SERVER = "STUN stun.l.google.com:19302";
@@ -8,6 +13,8 @@ var SERVER = "STUN stun.l.google.com:19302";
 // Reference to the lone PeerConnection instance.
 var peerConnections = {};
 
+
+// Chat functions
 
 function addToChat(msg, color)
 {
@@ -53,6 +60,8 @@ function initChat()
 }
 
 
+// Create PeerConnection
+
 function createPeerConnection(id)
 {
   console.log('createPeerConnection');
@@ -61,13 +70,18 @@ function createPeerConnection(id)
 
   pc.onopen = function()
   {
-    var channel = pc.createDataChannel('chat')
+    var label = 'chat'
+
+    var channel = pc.createDataChannel(label)
         channel.onmessage = function(message)
         {
           var data = JSON.parse(message.data)
 
           addToChat(data.messages, data.color.toString(16));
         }
+
+//    pc._datachannels = {}
+//    pc._datachannels[label] = channel
   };
 
   peerConnections[id] = pc
@@ -76,13 +90,8 @@ function createPeerConnection(id)
 }
 
 
-document.addEventListener('load', function()
+window.addEventListener('load', function()
 {
-  if(!PeerConnection)
-    alert('Your browser is not supported or you have to turn on flags. In '+
-          'chrome you go to chrome://flags and turn on Enable PeerConnection '+
-          'remember to restart chrome');
-
   var socket = new WebSocket("ws://localhost:8000/");
 	  socket.onopen = function()
 	  {
