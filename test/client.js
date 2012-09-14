@@ -138,7 +138,6 @@ window.addEventListener('load', function()
 	        break
 
 	        case 'receive_offer':
-	        {
 	          var pc = peerConnections[json.data.socketId];
 	          pc.setRemoteDescription(pc.SDP_OFFER,
 	                                  new SessionDescription(json.data.sdp));
@@ -167,15 +166,13 @@ window.addEventListener('load', function()
 	          });
 
 	          pc.setLocalDescription(pc.SDP_ANSWER, answer);
-	        }
 	        break
 
 	        case 'receive_answer':
-	        {
 	          var pc = peerConnections[json.data.socketId];
 	          pc.setRemoteDescription(pc.SDP_ANSWER,
 	                                  new SessionDescription(json.data.sdp));
-	        }
+            break
 
 	        case 'new_peer_connected':
 	          createPeerConnection(json.data.socketId);
