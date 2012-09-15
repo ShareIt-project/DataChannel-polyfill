@@ -102,19 +102,23 @@ function DCPF_install(ws_url)
     var channel = this._createDataChannel(configuration)
         channel._udt.onopen = function()
         {
+          // Wait until the other end of the channel is ready
           channel._udt.onmessage = function(message)
           {
             if(message.data == 'ready')
             {
+              // PeerConnection is closed, do nothing
               if(self.readyState == "closed")
                 return;
 
+              // Set onmessage event to bypass messages to user defined function
               channel._udt.onmessage = function(message)
               {
                 if(channel.onmessage)
                   channel.onmessage(message)
               }
 
+              // Set channel as open
               channel.readyState = "open"
 
               if(channel.onopen)
@@ -122,6 +126,7 @@ function DCPF_install(ws_url)
             }
           }
 
+          // Query to the other peer to create a new DataChannel with us
           channel.send(JSON.stringify(["create", self._peerId, configuration]))
         }
 
@@ -139,12 +144,14 @@ function DCPF_install(ws_url)
     var channel = this._createDataChannel(configuration)
         channel._udt.onopen = function()
         {
+            // Set onmessage event to bypass messages to user defined function
             channel._udt.onmessage = function(message)
             {
               if(channel.onmessage)
                 channel.onmessage(message)
             }
 
+            // Set channel as open
             channel.readyState = "open"
 
             channel.send(JSON.stringify(["ready", socketId]))
