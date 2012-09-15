@@ -26,10 +26,6 @@ use it it's a matter of three steps:
 
 Future work
 -----------
-* Remove the PeerConnection._datachannel attribute because it's outside the
-  standard and allow to do the registration on client code (yes, uncroyable but
-  doesn't works... :-( )
-
 * Work using SSL (a problem with the certificates?)
 
 * Detect and allow the coexistence of native and polyfill implementations on the
