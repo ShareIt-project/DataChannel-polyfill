@@ -106,7 +106,7 @@ window.addEventListener('load', function()
 
 	      switch(eventName)
 	      {
-	        case 'get_peers':
+	        case 'peers':
 	          for(var i = 0; i < socketId.length; i++)
 	          {
 	            // Create PeerConnection
@@ -115,8 +115,7 @@ window.addEventListener('load', function()
 	            // Send offer to new PeerConnection
 	            var offer = pc.createOffer();
 
-	            socket.send(JSON.stringify(["send_offer",
-	                                        socketId[i], offer.toSdp()]),
+	            socket.send(JSON.stringify(["offer", socketId[i], offer.toSdp()]),
 	            function(error)
 	            {
 	              if(error)
@@ -127,7 +126,7 @@ window.addEventListener('load', function()
 	          }
 	        break
 
-	        case 'receive_offer':
+	        case 'offer':
 	          var pc = peerConnections[socketId];
 	          pc.setRemoteDescription(pc.SDP_OFFER,
 	                                  new SessionDescription(args[2]));
@@ -135,8 +134,7 @@ window.addEventListener('load', function()
 	          // Send answer
 	          var answer = pc.createAnswer(pc.remoteDescription.toSdp());
 
-	          socket.send(JSON.stringify(["send_answer",
-	                                      socketId, answer.toSdp()]),
+	          socket.send(JSON.stringify(["answer", socketId, answer.toSdp()]),
 	          function(error)
 	          {
 	            if(error)
@@ -146,17 +144,17 @@ window.addEventListener('load', function()
 	          pc.setLocalDescription(pc.SDP_ANSWER, answer);
 	        break
 
-	        case 'receive_answer':
+	        case 'answer':
 	          var pc = peerConnections[socketId];
 	          pc.setRemoteDescription(pc.SDP_ANSWER,
 	                                  new SessionDescription(args[2]));
             break
 
-	        case 'new_peer_connected':
+	        case 'peer.create':
 	          createPeerConnection(socketId);
 	        break
 
-	        case 'remove_peer_connected':
+	        case 'peer.remove':
 	          delete peerConnections[socketId];
 	        break
 	      }

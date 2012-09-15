@@ -49,23 +49,9 @@ wss.on('connection', function(socket)
     var soc = getSocket(socketId);
     if(soc)
     {
-	  switch(eventName)
-	  {
-		//Receive offer and send to correct socket
-		case 'send_offer':
-		  args = ["receive_offer", socket.id, args[2]]
-		break
-
-		//Receive answer and send to correct socket
-		case 'send_answer':
-		  args = ["receive_answer", socket.id, args[2]]
-		break
-
-        default:
-          return
-	  }
-
       console.log(eventName);
+
+      args[1] = socket.id
 
       soc.send(JSON.stringify(args), function(error)
       {
@@ -88,7 +74,7 @@ wss.on('connection', function(socket)
 
       console.log(soc.id);
 
-      soc.send(JSON.stringify(["remove_peer_connected", socket.id]),
+      soc.send(JSON.stringify(["peer.remove", socket.id]),
       function(error)
       {
         if(error)
@@ -122,7 +108,7 @@ wss.on('connection', function(socket)
     connectionsId.push(soc.id);
 
     // inform the peers that they have a new peer
-    soc.send(JSON.stringify(["new_peer_connected", socket.id]),
+    soc.send(JSON.stringify(["peer.create", socket.id]),
     function(error)
     {
       if (error)
@@ -131,7 +117,7 @@ wss.on('connection', function(socket)
   }
 
   // send new peer a list of all prior peers
-  socket.send(JSON.stringify(["get_peers", connectionsId]),
+  socket.send(JSON.stringify(["peers", connectionsId]),
   function(error)
   {
     if(error)
