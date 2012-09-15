@@ -19,7 +19,7 @@ wss.on('connection', function(socket)
     // Forward raw message to the other peer
     function onmessage_proxy(message)
     {
-        socket.peer.send(message.data)
+        this.peer.send(message.data)
     };
 
     // Handshake
@@ -66,6 +66,8 @@ wss.on('connection', function(socket)
 
                     // Send 'ready' signal to the first peer and dettach it
                     soc.send('ready')
+
+                    delete soc.id
                     delete wss.sockets[socketId]
                 }
 
