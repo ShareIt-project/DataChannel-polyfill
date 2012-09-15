@@ -95,34 +95,29 @@ window.addEventListener('load', function()
   var socket = new WebSocket("ws://localhost:8000/");
 	  socket.onopen = function()
 	  {
-	    socket.onmessage = function(msg)
+	    socket.onmessage = function(message)
 	    {
-	      console.log("RECEIVED: "+msg.data);
+	      console.log("RECEIVED: "+message.data);
 
-	      var json = JSON.parse(msg.data);
+		  var args = JSON.parse(message.data);
 
-	      switch(json.eventName)
+		  var eventName = args[0]
+		  var socketId  = args[1]
+
+	      switch(eventName)
 	      {
 	        case 'get_peers':
-	          var connections = json.data.connections;
-
-	          for(var i = 0; i < connections.length; i++)
+	          for(var i = 0; i < socketId.length; i++)
 	          {
 	            // Create PeerConnection
-	            var pc = createPeerConnection(connections[i]);
+	            var pc = createPeerConnection(socketId[i]);
 
 	            // Send offer to new PeerConnection
 	            var offer = pc.createOffer();
 
-	            socket.send(JSON.stringify(
-	            {
-	              "eventName": "send_offer",
-	              "data":
-	              {
-	                "socketId": connections[i],
-	                "sdp": offer.toSdp()
-	              }
-	            }), function(error)
+	            socket.send(JSON.stringify(["send_offer",
+	                                        socketId[i], offer.toSdp()]),
+	            function(error)
 	            {
 	              if(error)
 	                console.log(error);
@@ -133,22 +128,16 @@ window.addEventListener('load', function()
 	        break
 
 	        case 'receive_offer':
-	          var pc = peerConnections[json.data.socketId];
+	          var pc = peerConnections[socketId];
 	          pc.setRemoteDescription(pc.SDP_OFFER,
-	                                  new SessionDescription(json.data.sdp));
+	                                  new SessionDescription(args[2]));
 
 	          // Send answer
 	          var answer = pc.createAnswer(pc.remoteDescription.toSdp());
 
-	          socket.send(JSON.stringify(
-	          {
-	            "eventName": "send_answer",
-	            "data":
-	            {
-	              "socketId": json.data.socketId,
-	              "sdp": answer.toSdp()
-	            }
-	          }), function(error)
+	          socket.send(JSON.stringify(["send_answer",
+	                                      socketId, answer.toSdp()]),
+	          function(error)
 	          {
 	            if(error)
 	              console.log(error);
@@ -158,17 +147,17 @@ window.addEventListener('load', function()
 	        break
 
 	        case 'receive_answer':
-	          var pc = peerConnections[json.data.socketId];
+	          var pc = peerConnections[socketId];
 	          pc.setRemoteDescription(pc.SDP_ANSWER,
-	                                  new SessionDescription(json.data.sdp));
+	                                  new SessionDescription(args[2]));
             break
 
 	        case 'new_peer_connected':
-	          createPeerConnection(json.data.socketId);
+	          createPeerConnection(socketId);
 	        break
 
 	        case 'remove_peer_connected':
-	          delete peerConnections[json.data.socketId];
+	          delete peerConnections[socketId];
 	        break
 	      }
 	    };

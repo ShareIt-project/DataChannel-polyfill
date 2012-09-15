@@ -29,9 +29,12 @@ var sockets = [];
 
 wss.on('connection', function(socket)
 {
-  socket.onmessage = function(msg)
+  socket.onmessage = function(message)
   {
-    var json = JSON.parse(msg.data);
+    var args = JSON.parse(message.data);
+
+    var eventName = args[0]
+    var socketId  = args[1]
 
 	function getSocket(id)
 	{
@@ -43,36 +46,28 @@ wss.on('connection', function(socket)
 	  }
 	}
 
-    var soc = getSocket(json.data.socketId);
+    var soc = getSocket(socketId);
     if(soc)
     {
-	  switch(json.eventName)
+	  switch(eventName)
 	  {
 		//Receive offer and send to correct socket
 		case 'send_offer':
-		  msg = {"eventName": "receive_offer",
-		         "data": {"sdp": json.data.sdp,
-		                  "socketId": socket.id
-		                  }
-		         }
+		  args = ["receive_offer", socket.id, args[2]]
 		break
 
 		//Receive answer and send to correct socket
 		case 'send_answer':
-		  msg = {"eventName": "receive_answer",
-		         "data": {"sdp": json.data.sdp,
-		                  "socketId": socket.id
-		                  }
-		         }
+		  args = ["receive_answer", socket.id, args[2]]
 		break
 
         default:
           return
 	  }
 
-      console.log(json.eventName);
+      console.log(eventName);
 
-      soc.send(JSON.stringify(msg), function(error)
+      soc.send(JSON.stringify(args), function(error)
       {
         if(error)
           console.log(error);
@@ -93,14 +88,8 @@ wss.on('connection', function(socket)
 
       console.log(soc.id);
 
-      soc.send(JSON.stringify(
-      {
-        "eventName": "remove_peer_connected",
-        "data":
-        {
-          "socketId": socket.id
-        }
-      }), function(error)
+      soc.send(JSON.stringify(["remove_peer_connected", socket.id]),
+      function(error)
       {
         if(error)
           console.log(error);
@@ -133,14 +122,8 @@ wss.on('connection', function(socket)
     connectionsId.push(soc.id);
 
     // inform the peers that they have a new peer
-    soc.send(JSON.stringify(
-    {
-      "eventName": "new_peer_connected",
-      "data":
-      {
-        "socketId": socket.id
-      }
-    }), function(error)
+    soc.send(JSON.stringify(["new_peer_connected", socket.id]),
+    function(error)
     {
       if (error)
         console.log(error);
@@ -148,14 +131,8 @@ wss.on('connection', function(socket)
   }
 
   // send new peer a list of all prior peers
-  socket.send(JSON.stringify(
-  {
-    "eventName": "get_peers",
-    "data":
-    {
-      "connections": connectionsId
-    }
-  }), function(error)
+  socket.send(JSON.stringify(["get_peers", connectionsId]),
+  function(error)
   {
     if(error)
       console.log(error);
