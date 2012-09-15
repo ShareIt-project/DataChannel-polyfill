@@ -68,26 +68,28 @@ function createPeerConnection(id)
 
   var pc = new PeerConnection(SERVER, function(candidate, moreToFollow){});
 
-  pc.onopen = function()
-  {
-    var label = 'chat'
-
-    var channel = pc.createDataChannel(label)
-        channel.onmessage = function(message)
-        {
-          var data = JSON.parse(message.data)
-
-          addToChat(data.messages, data.color.toString(16));
-        }
-
-//    pc._datachannels = {}
-//    pc._datachannels[label] = channel
-  };
-
   peerConnections[id] = pc
 
   return pc;
 }
+
+
+function initDataChannel(pc, channel)
+{
+  channel.onmessage = function(message)
+  {
+    var data = JSON.parse(message.data)
+
+    addToChat(data.messages, data.color.toString(16))
+  }
+  channel.onclose = function()
+  {
+    delete pc._datachannels[channel.label]
+  }
+
+  pc._datachannels = {}
+  pc._datachannels[channel.label] = channel
+};
 
 
 window.addEventListener('load', function()
@@ -111,6 +113,12 @@ window.addEventListener('load', function()
 	          {
 	            // Create PeerConnection
 	            var pc = createPeerConnection(socketId[i]);
+					pc.onopen = function()
+					{
+                      var channel = pc.createDataChannel('chat')
+
+					  initDataChannel(pc, channel)
+					}
 
 	            // Send offer to new PeerConnection
 	            var offer = pc.createOffer();
@@ -151,7 +159,11 @@ window.addEventListener('load', function()
             break
 
 	        case 'peer.create':
-	          createPeerConnection(socketId);
+	          var pc = createPeerConnection(socketId);
+	              pc.ondatachannel = function(event)
+	              {
+	                initDataChannel(pc, event.channel)
+	              }
 	        break
 
 	        case 'peer.remove':

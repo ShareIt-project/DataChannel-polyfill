@@ -69,15 +69,8 @@ function DCPF_install(ws_url)
     if(configuration.reliable != undefined)
       channel.reliable = configuration.reliable
 
-    this._datachannels = this._datachannels || {}
-    this._datachannels[configuration.label] = channel
-
-    var self = this
-
     channel._udt.onclose = function()
     {
-      delete self._datachannels[channel.label]
-
       if(channel.onclose)
         channel.onclose()
     }
