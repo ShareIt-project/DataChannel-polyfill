@@ -25,6 +25,15 @@ var wss = new WebSocketServer({server: app});
 
 //Array to store connections
 var sockets = [];
+sockets.find = function(id)
+{
+  for(var i = 0; i < sockets.length; i++)
+  {
+    var socket = sockets[i];
+    if(id === socket.id)
+      return socket;
+  }
+}
 
 
 wss.on('connection', function(socket)
@@ -36,17 +45,7 @@ wss.on('connection', function(socket)
     var eventName = args[0]
     var socketId  = args[1]
 
-	function getSocket(id)
-	{
-	  for(var i = 0; i < sockets.length; i++)
-	  {
-	    var socket = sockets[i];
-	    if(id === socket.id)
-	      return socket;
-	  }
-	}
-
-    var soc = getSocket(socketId);
+    var soc = sockets.find(socketId);
     if(soc)
     {
       console.log(eventName);
