@@ -1,5 +1,4 @@
-var PeerConnection = window.PeerConnection  || window.webkitPeerConnection00;
-    PeerConnection = PeerConnection         || window.mozPeerConnection;
+var PeerConnection = window.PeerConnection  || window.webkitPeerConnection00 || window.mozRTCPeerConnection;
 
 if(PeerConnection == undefined)
   alert('Your browser is not supported or you have to turn on flags. In chrome'+
