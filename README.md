@@ -11,7 +11,6 @@ This code can be found at https://github.com/piranna/DataChannel-polyfill
 
 How to use it
 -------------
-
 The polyfill is splitted in two parts, the polyfill 'per se' at datachannel.js
 and the server backend at server-datachannel.js (it needs Node.js, obviusly). To
 use it it's a matter of three steps:
@@ -23,6 +22,26 @@ use it it's a matter of three steps:
 2. run the backend server
 
 3. there's no third step! :-)
+
+How to test it
+--------------
+On the 'test' folder you can find a little P2P chat that can you use it for
+testing or learn how to use the DataChannel API. To run it
+
+1. add a copy of datachannel.js file on the 'test' folder (a symbolic link is
+   enought)
+
+2. run the test server
+
+3. run the backend server
+
+4. open several browsers pointing to http://localhost:8000 to start chatting :-)
+
+Requeriments
+------------
+* a web browser with the PeerConnection object (currently Chrome/Chromium >= 19)
+
+* a Node.js server with the 'ws' module installed
 
 Future work
 -----------
