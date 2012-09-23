@@ -5,9 +5,12 @@ var options = {key:  fs.readFileSync('certs/privatekey.pem').toString(),
                cert: fs.readFileSync('certs/certificate.pem').toString(),
                ca:  [fs.readFileSync('certs/certrequest.csr').toString()]}
 
+// Get AppFog port, or set 8002 as default one
+var port = process.env.VMC_APP_PORT || 8002
+
 // DataChannel proxy server
-var server = require('http').createServer().listen(8002);
-//var server = require('https').createServer(options).listen(8002);
+var server = require('http').createServer().listen(port);
+//var server = require('https').createServer(options).listen(port);
 var WebSocketServer = require('ws').Server
 var wss = new WebSocketServer({server: server});
 
