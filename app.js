@@ -8,9 +8,20 @@ var options = {key:  fs.readFileSync('certs/privatekey.pem').toString(),
 // Get AppFog port, or set 8002 as default one
 var port = process.env.VMC_APP_PORT || 8002
 
+// HTTP server
+function requestListener(req, res)
+{
+  res.writeHead(200, {'Content-Type': 'text/html'});
+  res.write('This is a DataChannel polyfill backend server. ')
+  res.write('You can get a copy of the source code at ')
+  res.end('<a href="https://github.com/piranna/DataChannel-polyfill">GitHub</a>')
+}
+
+var server = require('http').createServer(requestListener)
+//var server = require('https').createServer(options, requestListener)
+    server.listen(port);
+
 // DataChannel proxy server
-var server = require('http').createServer().listen(port);
-//var server = require('https').createServer(options).listen(port);
 var WebSocketServer = require('ws').Server
 var wss = new WebSocketServer({server: server});
 
