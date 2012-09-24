@@ -25,7 +25,7 @@ var server = require('http').createServer(requestListener)
 var WebSocketServer = require('ws').Server
 var wss = new WebSocketServer({server: server});
 
-//Array to store connections
+//Dict to store connections
 wss.sockets = {}
 
 wss.on('connection', function(socket)
