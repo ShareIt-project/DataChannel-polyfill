@@ -23,8 +23,9 @@ use it it's a matter of three steps:
 
 3. there's no third step! :-)
 
-There's also a (public) backend server at wss://datachannel-polyfill.jit.su that
-you can use (just for testing purposes, please :-) ).
+There's also a (public) backend server that you can use at
+wss://datachannel-polyfill.nodejitsu.com (just for testing purposes please, the
+bandwidth is high, but not infinite :-) ).
 
 How to test it
 --------------
