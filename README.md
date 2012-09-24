@@ -23,7 +23,7 @@ use it it's a matter of three steps:
 
 3. there's no third step! :-)
 
-There's also a (public) backend server at ws://datachannel-polyfill.jit.su that
+There's also a (public) backend server at wss://datachannel-polyfill.jit.su that
 you can use (just for testing purposes, please :-) ).
 
 How to test it
