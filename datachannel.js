@@ -168,10 +168,8 @@ function DCPF_install(ws_url)
   // Get the SDP session ID from a RTCSessionDescription object
   function getId(description)
   {
-    var result = description.toSdp().replace(/(\r\n|\n|\r)/gm, '\n')
-
-    var patt1=new RegExp("o=.+");
-    var result = patt1.exec(result)
+    var pattern = /^o=.+/gm
+    var result = pattern.exec(description.toSdp());
 
     return result[0]
   }

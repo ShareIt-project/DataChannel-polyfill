@@ -1,4 +1,4 @@
-var PeerConnection = window.PeerConnection  || window.webkitPeerConnection00 || window.mozRTCPeerConnection;
+var PeerConnection = window.PeerConnection || window.webkitPeerConnection00 || window.mozRTCPeerConnection;
 
 if(PeerConnection == undefined)
   alert('Your browser is not supported or you have to turn on flags. In chrome'+
@@ -9,7 +9,7 @@ if(PeerConnection == undefined)
 // Holds the STUN server to use for PeerConnections.
 var SERVER = "STUN stun.l.google.com:19302";
 
-// Reference to the lone PeerConnection instance.
+// Reference to the lone PeerConnection instances.
 var peerConnections = {};
 
 
