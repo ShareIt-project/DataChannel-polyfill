@@ -171,7 +171,7 @@ function DCPF_install(ws_url)
     var pattern = /^o=.+/gm
     var result = pattern.exec(description.toSdp());
 
-    return result[0]
+    return result[0].substring(2)
   }
 
   // Overwrite setters to catch the session IDs
