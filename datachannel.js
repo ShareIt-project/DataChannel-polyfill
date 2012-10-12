@@ -44,7 +44,7 @@ function DCPF_install(ws_url)
                 var args = JSON.parse(message.data)
 
                 if(args[0] == 'create')
-                    pc._ondatachannel(args[1], args[2])
+                    ondatachannel(pc, args[1], args[2])
             }
 
             socket.send(JSON.stringify(['setId', "pc."+id]))
@@ -141,14 +141,12 @@ function DCPF_install(ws_url)
   }
 
   // Private function to 'catch' the 'ondatachannel' event
-  PeerConnection.prototype._ondatachannel = function(socketId, configuration)
+  function ondatachannel(pc, socketId, configuration)
   {
-    if(this.readyState == "closed")
+    if(pc.readyState == "closed")
       return;
 
-    var self = this
-
-    var channel = createDataChannel(this, configuration)
+    var channel = createDataChannel(pc, configuration)
         channel._udt.onopen = function()
         {
             // Set onmessage event to bypass messages to user defined function
@@ -167,8 +165,8 @@ function DCPF_install(ws_url)
                 evt.initEvent('datachannel', true, true)
                 evt.channel = channel
 
-            if(self.ondatachannel)
-                self.ondatachannel(evt);
+            if(pc.ondatachannel)
+                pc.ondatachannel(evt);
         }
   }
 
