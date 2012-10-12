@@ -1,0 +1,14 @@
+{
+  "name": "DataChannel-polyfill",
+  "version": "1.0.0",
+  "dependencies": {
+    "ws": "0.4.x"
+  },
+  "subdomain": "DataChannel-polyfill",
+  "scripts": {
+    "start": "app.js"
+  },
+  "engines": {
+    "node": "0.8.x"
+  }
+}

@@ -34,10 +34,8 @@ function DCPF_install(ws_url)
 
   // Create a signalling channel with a WebSocket on the proxy server with the
   // defined ID and wait for new 'create' messages to create new DataChannels
-  PeerConnection.prototype._setId = function(id)
+  function setId(pc, id)
   {
-    var self = this
-
     var socket = new WebSocket(ws_url)
         socket.onopen = function()
         {
@@ -46,7 +44,7 @@ function DCPF_install(ws_url)
                 var args = JSON.parse(message.data)
 
                 if(args[0] == 'create')
-                    self._ondatachannel(args[1], args[2])
+                    ondatachannel(pc, args[1], args[2])
             }
 
             socket.send(JSON.stringify(['setId', "pc."+id]))
@@ -54,13 +52,13 @@ function DCPF_install(ws_url)
   }
 
   // Set the PeerConnection peer ID
-  PeerConnection.prototype._setPeerId = function(peerId)
+  function setPeerId(pc, peerId)
   {
-    this._peerId = "pc."+peerId
+    pc._peerId = "pc."+peerId
   }
 
   // Private DataChannel factory function
-  PeerConnection.prototype._createDataChannel = function(configuration)
+  function createDataChannel(pc, configuration)
   {
     var channel = new DataChannel()
         channel.label = configuration.label
@@ -71,6 +69,15 @@ function DCPF_install(ws_url)
 
     channel._udt.onclose = function()
     {
+      if(pc.readyState == "closed")
+        return;
+
+      if(channel.readyState == "closing"
+      || channel.readyState == "closed")
+        return;
+
+      channel.readyState = "closed"
+
       if(channel.onclose)
         channel.onclose()
     }
@@ -99,7 +106,7 @@ function DCPF_install(ws_url)
 
     var self = this
 
-    var channel = this._createDataChannel(configuration)
+    var channel = createDataChannel(this, configuration)
         channel._udt.onopen = function()
         {
           // Wait until the other end of the channel is ready
@@ -134,14 +141,12 @@ function DCPF_install(ws_url)
   }
 
   // Private function to 'catch' the 'ondatachannel' event
-  PeerConnection.prototype._ondatachannel = function(socketId, configuration)
+  function ondatachannel(pc, socketId, configuration)
   {
-    if(this.readyState == "closed")
+    if(pc.readyState == "closed")
       return;
 
-    var self = this
-
-    var channel = this._createDataChannel(configuration)
+    var channel = createDataChannel(pc, configuration)
         channel._udt.onopen = function()
         {
             // Set onmessage event to bypass messages to user defined function
@@ -160,20 +165,18 @@ function DCPF_install(ws_url)
                 evt.initEvent('datachannel', true, true)
                 evt.channel = channel
 
-            if(self.ondatachannel)
-                self.ondatachannel(evt);
+            if(pc.ondatachannel)
+                pc.ondatachannel(evt);
         }
   }
 
   // Get the SDP session ID from a RTCSessionDescription object
   function getId(description)
   {
-    var result = description.toSdp().replace(/(\r\n|\n|\r)/gm, '\n')
+    var pattern = /^o=.+/gm
+    var result = pattern.exec(description.toSdp());
 
-    var patt1=new RegExp("o=.+");
-    var result = patt1.exec(result)
-
-    return result[0]
+    return result[0].substring(2)
   }
 
   // Overwrite setters to catch the session IDs
@@ -182,14 +185,14 @@ function DCPF_install(ws_url)
 
   PeerConnection.prototype.setLocalDescription = function(type, description)
   {
-    this._setId(getId(description))
+    setId(this, getId(description))
 
     setLocalDescription.call(this, type, description)
   }
 
   PeerConnection.prototype.setRemoteDescription = function(type, description)
   {
-    this._setPeerId(getId(description))
+    setPeerId(this, getId(description))
 
     setRemoteDescription.call(this, type, description)
   }
