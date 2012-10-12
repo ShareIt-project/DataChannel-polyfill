@@ -34,10 +34,8 @@ function DCPF_install(ws_url)
 
   // Create a signalling channel with a WebSocket on the proxy server with the
   // defined ID and wait for new 'create' messages to create new DataChannels
-  PeerConnection.prototype._setId = function(id)
+  function setId(pc, id)
   {
-    var self = this
-
     var socket = new WebSocket(ws_url)
         socket.onopen = function()
         {
@@ -46,7 +44,7 @@ function DCPF_install(ws_url)
                 var args = JSON.parse(message.data)
 
                 if(args[0] == 'create')
-                    self._ondatachannel(args[1], args[2])
+                    pc._ondatachannel(args[1], args[2])
             }
 
             socket.send(JSON.stringify(['setId', "pc."+id]))
@@ -54,13 +52,13 @@ function DCPF_install(ws_url)
   }
 
   // Set the PeerConnection peer ID
-  PeerConnection.prototype._setPeerId = function(peerId)
+  function setPeerId(pc, peerId)
   {
-    this._peerId = "pc."+peerId
+    pc._peerId = "pc."+peerId
   }
 
   // Private DataChannel factory function
-  function _createDataChannel(pc, configuration)
+  function createDataChannel(pc, configuration)
   {
     var channel = new DataChannel()
         channel.label = configuration.label
@@ -108,7 +106,7 @@ function DCPF_install(ws_url)
 
     var self = this
 
-    var channel = _createDataChannel(this, configuration)
+    var channel = createDataChannel(this, configuration)
         channel._udt.onopen = function()
         {
           // Wait until the other end of the channel is ready
@@ -150,7 +148,7 @@ function DCPF_install(ws_url)
 
     var self = this
 
-    var channel = _createDataChannel(this, configuration)
+    var channel = createDataChannel(this, configuration)
         channel._udt.onopen = function()
         {
             // Set onmessage event to bypass messages to user defined function
@@ -189,14 +187,14 @@ function DCPF_install(ws_url)
 
   PeerConnection.prototype.setLocalDescription = function(type, description)
   {
-    this._setId(getId(description))
+    setId(this, getId(description))
 
     setLocalDescription.call(this, type, description)
   }
 
   PeerConnection.prototype.setRemoteDescription = function(type, description)
   {
-    this._setPeerId(getId(description))
+    setPeerId(this, getId(description))
 
     setRemoteDescription.call(this, type, description)
   }
