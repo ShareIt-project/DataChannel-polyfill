@@ -60,7 +60,7 @@ function DCPF_install(ws_url)
   }
 
   // Private DataChannel factory function
-  function _createDataChannel(configuration)
+  PeerConnection.prototype._createDataChannel = function(configuration)
   {
     var channel = new DataChannel()
         channel.label = configuration.label
@@ -69,8 +69,19 @@ function DCPF_install(ws_url)
     if(configuration.reliable != undefined)
       channel.reliable = configuration.reliable
 
+    var self = this   // PeerConnection
+
     channel._udt.onclose = function()
     {
+      if(self.readyState == "closed")
+        return;
+
+      if(channel.readyState == "closing"
+      || channel.readyState == "closed")
+        return;
+
+      channel.readyState = "closed"
+
       if(channel.onclose)
         channel.onclose()
     }
@@ -99,7 +110,7 @@ function DCPF_install(ws_url)
 
     var self = this
 
-    var channel = _createDataChannel(configuration)
+    var channel = this._createDataChannel(configuration)
         channel._udt.onopen = function()
         {
           // Wait until the other end of the channel is ready
@@ -141,7 +152,7 @@ function DCPF_install(ws_url)
 
     var self = this
 
-    var channel = _createDataChannel(configuration)
+    var channel = this._createDataChannel(configuration)
         channel._udt.onopen = function()
         {
             // Set onmessage event to bypass messages to user defined function
