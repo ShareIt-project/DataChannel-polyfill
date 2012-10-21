@@ -1,18 +1,18 @@
 function DCPF_install(ws_url)
 {
   // Fallbacks for vendor-specific variables until the spec is finalized.
-  var PeerConnection = window.PeerConnection || window.webkitPeerConnection00 || window.mozRTCPeerConnection;
+  var RTCPeerConnection = window.RTCPeerConnection || window.webkitPeerConnection00 || window.mozRTCPeerConnection;
 
   // Check if browser has support for WebRTC PeerConnection
-  if(PeerConnection == undefined)
+  if(RTCPeerConnection == undefined)
   {
-    console.error("Your browser doesn't support PeerConnection, please use "+
+    console.error("Your browser doesn't support RTCPeerConnection, please use "+
                   "one of the latest versions of Chrome/Chromium or Firefox");
     return;
   }
 
 //  // Check if browser has support for native WebRTC DataChannel
-//  if((new PeerConnection("STUN stun.l.google.com:19302", function(){})).createDataChannel)
+//  if((new RTCPeerConnection("STUN stun.l.google.com:19302", function(){})).createDataChannel)
 //  {
 //    console.log("Using native DataChannel");
 //    return;
@@ -86,7 +86,7 @@ function DCPF_install(ws_url)
   }
 
   // Public function to initiate the creation of a new DataChannel
-  PeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
+  RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
   {
     if(!this._peerId)
     {
@@ -180,17 +180,17 @@ function DCPF_install(ws_url)
   }
 
   // Overwrite setters to catch the session IDs
-  var setLocalDescription  = PeerConnection.prototype.setLocalDescription
-  var setRemoteDescription = PeerConnection.prototype.setRemoteDescription
+  var setLocalDescription  = RTCPeerConnection.prototype.setLocalDescription
+  var setRemoteDescription = RTCPeerConnection.prototype.setRemoteDescription
 
-  PeerConnection.prototype.setLocalDescription = function(type, description)
+  RTCPeerConnection.prototype.setLocalDescription = function(type, description)
   {
     setId(this, getId(description))
 
     setLocalDescription.call(this, type, description)
   }
 
-  PeerConnection.prototype.setRemoteDescription = function(type, description)
+  RTCPeerConnection.prototype.setRemoteDescription = function(type, description)
   {
     setPeerId(this, getId(description))
 
