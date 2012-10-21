@@ -14,14 +14,14 @@ function DCPF_install(ws_url)
 //  // Check if browser has support for native WebRTC DataChannel
 //  if((new RTCPeerConnection("STUN stun.l.google.com:19302", function(){})).createDataChannel)
 //  {
-//    console.log("Using native DataChannel");
+//    console.log("Using native WebRTC DataChannel");
 //    return;
 //  }
 
-  console.log("Adding DataChannel polyfill...");
+  console.log("Adding WebRTC DataChannel polyfill...");
 
   // DataChannel polyfill using WebSockets as 'underlying data transport'
-  function DataChannel()
+  function RTCDataChannel()
   {
     // Use a WebSocket as 'underlying data transport' to create the DataChannel
     this._udt = new WebSocket(ws_url)
@@ -60,7 +60,7 @@ function DCPF_install(ws_url)
   // Private DataChannel factory function
   function createDataChannel(pc, configuration)
   {
-    var channel = new DataChannel()
+    var channel = new RTCDataChannel()
         channel.label = configuration.label
         channel.reliable = true
 
