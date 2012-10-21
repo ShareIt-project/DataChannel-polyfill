@@ -1,6 +1,6 @@
-var PeerConnection = window.PeerConnection || window.webkitPeerConnection00 || window.mozRTCPeerConnection;
+var RTCPeerConnection = window.RTCPeerConnection || window.webkitPeerConnection00 || window.mozRTCPeerConnection;
 
-if(PeerConnection == undefined)
+if(RTCPeerConnection == undefined)
   alert('Your browser is not supported or you have to turn on flags. In chrome'+
         ' you go to chrome://flags and turn on Enable PeerConnection remember '+
         'to restart chrome');
@@ -65,7 +65,7 @@ function createPeerConnection(id)
 {
   console.log('createPeerConnection');
 
-  var pc = new PeerConnection(SERVER, function(candidate, moreToFollow){});
+  var pc = new RTCPeerConnection(SERVER, function(candidate, moreToFollow){});
 
   peerConnections[id] = pc
 
