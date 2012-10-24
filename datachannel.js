@@ -8,17 +8,17 @@ function DCPF_install(ws_url)
   {
     console.error("Your browser doesn't support RTCPeerConnection, please use "+
                   "one of the latest versions of Chrome/Chromium or Firefox");
-    return;
+    return "old browser";
   }
 
 //  // Check if browser has support for native WebRTC DataChannel
 //  if((new RTCPeerConnection("STUN stun.l.google.com:19302", function(){})).createDataChannel)
 //  {
 //    console.log("Using native WebRTC DataChannel");
-//    return;
+//    return "native";
 //  }
 
-  console.log("Adding WebRTC DataChannel polyfill...");
+  console.warn("Adding WebRTC DataChannel polyfill...");
 
   // DataChannel polyfill using WebSockets as 'underlying data transport'
   function RTCDataChannel()
@@ -196,4 +196,6 @@ function DCPF_install(ws_url)
 
     setRemoteDescription.call(this, type, description)
   }
+
+  return "polyfill";
 }
