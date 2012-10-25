@@ -25,6 +25,10 @@ function DCPF_install(ws_url)
   {
     // Use a WebSocket as 'underlying data transport' to create the DataChannel
     this._udt = new WebSocket(ws_url)
+    this._udt.onerror = function(error)
+    {
+        console.error(error)
+    }
 
     this.close = function(){this._udt.close()}
     this.send  = function(data, onerror){this._udt.send(data, onerror)}
@@ -48,6 +52,10 @@ function DCPF_install(ws_url)
             }
 
             socket.send(JSON.stringify(['setId', "pc."+id]))
+        }
+        socket.onerror = function(error)
+        {
+            console.error(error)
         }
   }
 

@@ -176,6 +176,10 @@ window.addEventListener('load', function()
 	      console.log('onerror: '+err);
 	    };
 	  };
+      socket.onerror = function(error)
+      {
+          console.error(error)
+      }
 
 
   initChat();
