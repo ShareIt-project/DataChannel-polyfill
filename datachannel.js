@@ -23,11 +23,14 @@ function DCPF_install(ws_url)
   // DataChannel polyfill using WebSockets as 'underlying data transport'
   function RTCDataChannel()
   {
+    var self = this
+
     // Use a WebSocket as 'underlying data transport' to create the DataChannel
     this._udt = new WebSocket(ws_url)
     this._udt.onerror = function(error)
     {
-        console.error(error)
+        if(self.onerror)
+            self.onerror(error)
     }
 
     this.close = function(){this._udt.close()}

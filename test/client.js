@@ -126,7 +126,7 @@ window.addEventListener('load', function()
 	            function(error)
 	            {
 	              if(error)
-	                console.log(error);
+	                console.error(error);
 	            });
 
 	            pc.setLocalDescription(pc.SDP_OFFER, offer);
@@ -145,7 +145,7 @@ window.addEventListener('load', function()
 	          function(error)
 	          {
 	            if(error)
-	              console.log(error);
+	              console.error(error);
 	          });
 
 	          pc.setLocalDescription(pc.SDP_ANSWER, answer);
@@ -169,11 +169,6 @@ window.addEventListener('load', function()
 	          delete peerConnections[socketId];
 	        break
 	      }
-	    };
-
-	    socket.onerror = function(err)
-	    {
-	      console.log('onerror: '+err);
 	    };
 	  };
       socket.onerror = function(error)
