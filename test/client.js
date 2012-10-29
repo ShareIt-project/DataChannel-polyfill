@@ -1,4 +1,4 @@
-var RTCPeerConnection = window.RTCPeerConnection || window.webkitPeerConnection00 || window.mozRTCPeerConnection;
+var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.webkitPeerConnection00 || window.mozRTCPeerConnection;
 
 if(RTCPeerConnection == undefined)
   alert('Your browser is not supported or you have to turn on flags. In chrome'+
