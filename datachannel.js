@@ -1,7 +1,7 @@
 function DCPF_install(ws_url)
 {
   // Fallbacks for vendor-specific variables until the spec is finalized.
-  var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.webkitPeerConnection00 || window.mozRTCPeerConnection;
+  var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
 
   // Check if browser has support for WebRTC PeerConnection
   if(RTCPeerConnection == undefined)

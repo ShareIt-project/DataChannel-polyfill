@@ -1,4 +1,4 @@
-var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.webkitPeerConnection00 || window.mozRTCPeerConnection;
+var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
 
 if(RTCPeerConnection == undefined)
   alert('Your browser is not supported or you have to turn on flags. In chrome'+
@@ -7,7 +7,7 @@ if(RTCPeerConnection == undefined)
 
 
 // Holds the STUN server to use for PeerConnections.
-var SERVER = "STUN stun.l.google.com:19302";
+var SERVER = "stun:stun.l.google.com:19302";
 
 // Reference to the lone PeerConnection instances.
 var peerConnections = {};
@@ -65,7 +65,7 @@ function createPeerConnection(id)
 {
   console.log('createPeerConnection');
 
-  var pc = new RTCPeerConnection(SERVER, function(candidate, moreToFollow){});
+  var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]});
 
   peerConnections[id] = pc
 
