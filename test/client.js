@@ -114,7 +114,7 @@ window.addEventListener('load', function()
 	          {
 	            // Create PeerConnection
 	            var pc = createPeerConnection(socketId[i]);
-					pc.onConnection = function()
+					pc.onopen = function()
 					{
                       var channel = pc.createDataChannel('chat')
 
@@ -124,14 +124,15 @@ window.addEventListener('load', function()
 	            // Send offer to new PeerConnection
 	            pc.createOffer(function(offer)
 	            {
-	                socket.send(JSON.stringify(["offer", socketId[i], offer.toSdp()]),
+	                socket.send(JSON.stringify(["offer", socketId[i], offer.sdp]),
 	                function(error)
 	                {
 	                  if(error)
 	                    console.log(error);
 	                });
 
-	                pc.setLocalDescription(pc.SDP_OFFER, offer);
+	                pc.setLocalDescription(new RTCSessionDescription({sdp: offer.sdp,
+	                                                                  type: 'offer'}));
 	            },
 	            function(code)
 	            {
@@ -142,31 +143,33 @@ window.addEventListener('load', function()
 
 	        case 'offer':
 	          var pc = peerConnections[socketId];
-	          pc.setRemoteDescription(pc.SDP_OFFER,
-	                                  new SessionDescription(args[2]));
+	          pc.setRemoteDescription(new RTCSessionDescription({sdp: args[2],
+	                                                             type: 'offer'}));
 
 	          // Send answer
-	          var answer = pc.createAnswer(pc.remoteDescription.toSdp());
+	          pc.createAnswer(function(answer)
+              {
+	              socket.send(JSON.stringify(["answer", socketId, answer.sdp]),
+                  function(error)
+                  {
+                    if(error)
+                      console.error(error);
+                  });
 
-	          socket.send(JSON.stringify(["answer", socketId, answer.toSdp()]),
-	          function(error)
-	          {
-	            if(error)
-	              console.error(error);
-	          });
-
-	          pc.setLocalDescription(pc.SDP_ANSWER, answer);
+                  pc.setLocalDescription(new RTCSessionDescription({sdp: answer.sdp,
+                                                                    type: 'answer'}));
+              });
 	        break
 
 	        case 'answer':
 	          var pc = peerConnections[socketId];
-	          pc.setRemoteDescription(pc.SDP_ANSWER,
-	                                  new SessionDescription(args[2]));
+	          pc.setRemoteDescription(new RTCSessionDescription({sdp: args[2],
+                                                                 type: 'answer'}));
             break
 
 	        case 'peer.create':
 	          var pc = createPeerConnection(socketId);
-	              pc.onDataChannel = function(event)
+	              pc.ondatachannel = function(event)
 	              {
 	                initDataChannel(pc, event.channel)
 	              }

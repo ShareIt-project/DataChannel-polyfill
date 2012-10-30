@@ -187,8 +187,9 @@ function DCPF_install(ws_url)
   // Get the SDP session ID from a RTCSessionDescription object
   function getId(description)
   {
+    console.debug(description)
     var pattern = /^o=.+/gm
-    var result = pattern.exec(description.toSdp());
+    var result = pattern.exec(description.sdp);
 
     return result[0].substring(2)
   }
@@ -197,18 +198,18 @@ function DCPF_install(ws_url)
   var setLocalDescription  = RTCPeerConnection.prototype.setLocalDescription
   var setRemoteDescription = RTCPeerConnection.prototype.setRemoteDescription
 
-  RTCPeerConnection.prototype.setLocalDescription = function(type, description)
+  RTCPeerConnection.prototype.setLocalDescription = function(description, successCallback, failureCallback)
   {
     setId(this, getId(description))
 
-    setLocalDescription.call(this, type, description)
+    setLocalDescription.call(this, description, successCallback, failureCallback)
   }
 
-  RTCPeerConnection.prototype.setRemoteDescription = function(type, description)
+  RTCPeerConnection.prototype.setRemoteDescription = function(description, successCallback, failureCallback)
   {
     setPeerId(this, getId(description))
 
-    setRemoteDescription.call(this, type, description)
+    setRemoteDescription.call(this, description, successCallback, failureCallback)
   }
 
   return "polyfill";
