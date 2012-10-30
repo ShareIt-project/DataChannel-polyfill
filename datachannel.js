@@ -11,8 +11,11 @@ function DCPF_install(ws_url)
     return "old browser";
   }
 
+//Holds the STUN server to use for PeerConnections.
+  var SERVER = "stun:stun.l.google.com:19302";
+
 //  // Check if browser has support for native WebRTC DataChannel
-//  if((new RTCPeerConnection("STUN stun.l.google.com:19302", function(){})).createDataChannel)
+//  if((new RTCPeerConnection({"iceServers": [{"url": SERVER}]})).createDataChannel)
 //  {
 //    console.log("Using native WebRTC DataChannel");
 //    return "native";

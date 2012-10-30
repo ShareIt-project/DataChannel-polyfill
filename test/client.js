@@ -75,6 +75,8 @@ function createPeerConnection(id)
 
 function initDataChannel(pc, channel)
 {
+  console.log('initDataChannel');
+
   channel.onmessage = function(message)
   {
     var data = JSON.parse(message.data)
@@ -112,7 +114,7 @@ window.addEventListener('load', function()
 	          {
 	            // Create PeerConnection
 	            var pc = createPeerConnection(socketId[i]);
-					pc.onopen = function()
+					pc.onConnection = function()
 					{
                       var channel = pc.createDataChannel('chat')
 
@@ -120,16 +122,21 @@ window.addEventListener('load', function()
 					}
 
 	            // Send offer to new PeerConnection
-	            var offer = pc.createOffer();
-
-	            socket.send(JSON.stringify(["offer", socketId[i], offer.toSdp()]),
-	            function(error)
+	            pc.createOffer(function(offer)
 	            {
-	              if(error)
-	                console.error(error);
-	            });
+	                socket.send(JSON.stringify(["offer", socketId[i], offer.toSdp()]),
+	                function(error)
+	                {
+	                  if(error)
+	                    console.log(error);
+	                });
 
-	            pc.setLocalDescription(pc.SDP_OFFER, offer);
+	                pc.setLocalDescription(pc.SDP_OFFER, offer);
+	            },
+	            function(code)
+	            {
+                    log("Failure callback: " + code);
+                });
 	          }
 	        break
 
@@ -159,7 +166,7 @@ window.addEventListener('load', function()
 
 	        case 'peer.create':
 	          var pc = createPeerConnection(socketId);
-	              pc.ondatachannel = function(event)
+	              pc.onDataChannel = function(event)
 	              {
 	                initDataChannel(pc, event.channel)
 	              }

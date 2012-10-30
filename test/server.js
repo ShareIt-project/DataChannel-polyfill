@@ -64,7 +64,7 @@ wss.on('connection', function(socket)
   {
     console.log('close');
 
-    // remove socket and send remove_peer_connected to all other sockets
+    // remove socket and send peer.remove to all other sockets
     sockets.splice(sockets.indexOf(socket), 1);
 
     for(var i = 0; i < sockets.length; i++)
