@@ -14,12 +14,12 @@ function DCPF_install(ws_url)
 //Holds the STUN server to use for PeerConnections.
   var SERVER = "stun:stun.l.google.com:19302";
 
-//  // Check if browser has support for native WebRTC DataChannel
-//  if((new RTCPeerConnection({"iceServers": [{"url": SERVER}]})).createDataChannel)
-//  {
-//    console.log("Using native WebRTC DataChannel");
-//    return "native";
-//  }
+  // Check if browser has support for native WebRTC DataChannel
+  if((new RTCPeerConnection({"iceServers": [{"url": SERVER}]})).createDataChannel)
+  {
+    console.log("Using native WebRTC DataChannel");
+    return "native";
+  }
 
   console.warn("Adding WebRTC DataChannel polyfill...");
 
@@ -187,7 +187,6 @@ function DCPF_install(ws_url)
   // Get the SDP session ID from a RTCSessionDescription object
   function getId(description)
   {
-    console.debug(description)
     var pattern = /^o=.+/gm
     var result = pattern.exec(description.sdp);
 

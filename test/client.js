@@ -63,9 +63,9 @@ function initChat()
 
 function createPeerConnection(id)
 {
-  console.log('createPeerConnection');
+    console.log('createPeerConnection');
 
-  var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]});
+    var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]});
 
   peerConnections[id] = pc
 
