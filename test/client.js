@@ -1,4 +1,5 @@
-var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+var RTCPeerConnection = window.mozRTCPeerConnection;
+//var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
 
 if(RTCPeerConnection == undefined)
   alert('Your browser is not supported or you have to turn on flags. In chrome'+
@@ -64,6 +65,7 @@ function initChat()
 function createPeerConnection(id)
 {
     console.log('createPeerConnection');
+    console.debug(RTCPeerConnection);
 
     var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]});
 
