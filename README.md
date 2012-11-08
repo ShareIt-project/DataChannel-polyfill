@@ -1,7 +1,8 @@
 DataChannel-polyfill
 ====================
 
-Web browser polyfill that implement the WebRTC DataChannel API over a websocket
+Web browser polyfill that implement the WebRTC DataChannel API over a websocket.
+It implement the full latest DataChannel API specification defined at 2012-10-21.
 
 Credits
 -------
@@ -29,15 +30,15 @@ bandwidth is high, but not infinite :-) ).
 
 How to test it
 --------------
-On the 'test' folder you can find a little P2P chat that can you use it for
-testing or learn how to use the DataChannel API. To run it
+On the 'test' folder you can find a little P2P chat that can be used for testing
+or just learn how to use the DataChannel API. To run it
 
 1. add a copy of datachannel.js file on the 'test' folder (a symbolic link is
    enought)
 
 2. run the test server
 
-3. run the backend server
+3. run the backend server (by default is using the one at Nodejitsu)
 
 4. open several browsers pointing to http://localhost:8000 to start chatting :-)
 
@@ -49,10 +50,6 @@ Requeriments
 
 Future work
 -----------
-* Work using SSL (a problem with the certificates?)
-
 * Detect and allow the coexistence of native and polyfill implementations on the
   same network (use polyfill if one of the two ends doesn't support native
   DataChannels)
-
-* Implement the full API specification and maintain the code over the time
