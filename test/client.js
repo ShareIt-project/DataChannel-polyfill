@@ -116,7 +116,7 @@ window.addEventListener('load', function()
 	          {
 	            // Create PeerConnection
 	            var pc = createPeerConnection(socketId[i]);
-					pc.onopen = function()
+					pc.onconnection = function()
 					{
                       var channel = pc.createDataChannel('chat')
 
