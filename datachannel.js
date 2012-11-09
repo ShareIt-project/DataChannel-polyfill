@@ -16,7 +16,20 @@ function DCPF_install(ws_url)
   var SERVER = "stun:stun.l.google.com:19302";
 
   // Check if browser has support for native WebRTC DataChannel
-  if((new RTCPeerConnection({"iceServers": [{"url": SERVER}]})).createDataChannel)
+  function checkSupport()
+  {
+      var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]})
+
+      try{pc.createDataChannel()}
+      catch(e)
+      {
+          return false
+      }
+
+      return true
+  }
+
+  if(checkSupport())
   {
     console.log("Using native WebRTC DataChannel");
     return "native";
