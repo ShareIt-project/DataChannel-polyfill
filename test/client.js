@@ -48,7 +48,7 @@ function initChat()
           function(error)
           {
             if(error)
-              console.log(error);
+              console.error(error);
           });
       }
 
@@ -106,6 +106,7 @@ window.addEventListener('load', function()
 
 		  var eventName = args[0]
 		  var socketId  = args[1]
+		  var sdp       = args[2]
 
 	      switch(eventName)
 	      {
@@ -124,26 +125,27 @@ window.addEventListener('load', function()
 	            // Send offer to new PeerConnection
 	            pc.createOffer(function(offer)
 	            {
-	                socket.send(JSON.stringify(["offer", socketId[i], offer.sdp]),
+	                console.log("createOffer: "+socketId+", "+offer.type);
+
+	                socket.send(JSON.stringify(["offer", socketId, offer.sdp]),
 	                function(error)
 	                {
 	                  if(error)
-	                    console.log(error);
+	                    console.error(error);
 	                });
 
-	                pc.setLocalDescription(new RTCSessionDescription({sdp: offer.sdp,
-	                                                                  type: 'offer'}));
+	                pc.setLocalDescription(offer);
 	            },
 	            function(code)
 	            {
-                    log("Failure callback: " + code);
+                    console.error("Failure callback: " + code);
                 });
 	          }
 	        break
 
 	        case 'offer':
 	          var pc = peerConnections[socketId];
-	          pc.setRemoteDescription(new RTCSessionDescription({sdp: args[2],
+	          pc.setRemoteDescription(new RTCSessionDescription({sdp:  sdp,
 	                                                             type: 'offer'}));
 
 	          // Send answer
@@ -156,14 +158,13 @@ window.addEventListener('load', function()
                       console.error(error);
                   });
 
-                  pc.setLocalDescription(new RTCSessionDescription({sdp: answer.sdp,
-                                                                    type: 'answer'}));
+                  pc.setLocalDescription(answer);
               });
 	        break
 
 	        case 'answer':
 	          var pc = peerConnections[socketId];
-	          pc.setRemoteDescription(new RTCSessionDescription({sdp: args[2],
+	          pc.setRemoteDescription(new RTCSessionDescription({sdp:  sdp,
                                                                  type: 'answer'}));
             break
 
