@@ -75,7 +75,7 @@ function createPeerConnection(uid)
 
 function initDataChannel(pc, channel)
 {
-  console.log('initDataChannel '+channel+' on '+pc);
+  console.log("initDataChannel '"+channel.label+"' on "+pc);
 
   channel.onmessage = function(message)
   {
