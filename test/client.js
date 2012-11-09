@@ -61,13 +61,13 @@ function initChat()
 
 // Create PeerConnection
 
-function createPeerConnection(id)
+function createPeerConnection(uid)
 {
-    console.log('createPeerConnection');
+    console.log('createPeerConnection '+uid);
 
     var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]});
 
-  peerConnections[id] = pc
+  peerConnections[uid] = pc
 
   return pc;
 }
@@ -75,7 +75,7 @@ function createPeerConnection(id)
 
 function initDataChannel(pc, channel)
 {
-  console.log('initDataChannel');
+  console.log('initDataChannel '+channel+' on '+pc);
 
   channel.onmessage = function(message)
   {
@@ -105,16 +105,18 @@ window.addEventListener('load', function()
 		  var args = JSON.parse(message.data);
 
 		  var eventName = args[0]
-		  var socketId  = args[1]
+		  var uids      = args[1]
 		  var sdp       = args[2]
 
 	      switch(eventName)
 	      {
 	        case 'peers':
-	          for(var i = 0; i < socketId.length; i++)
+	          for(var i = 0; i < uids.length; i++)
 	          {
+	            var uid = uids[i]
+
 	            // Create PeerConnection
-	            var pc = createPeerConnection(socketId[i]);
+	            var pc = createPeerConnection(uid);
 					pc.onopen = function()
 					{
                       var channel = pc.createDataChannel('chat')
@@ -125,9 +127,9 @@ window.addEventListener('load', function()
 	            // Send offer to new PeerConnection
 	            pc.createOffer(function(offer)
 	            {
-	                console.log("createOffer: "+socketId+", "+offer.type);
+	                console.log("createOffer: "+uid+", "+offer.sdp);
 
-	                socket.send(JSON.stringify(["offer", socketId, offer.sdp]),
+	                socket.send(JSON.stringify(["offer", uid, offer.sdp]),
 	                function(error)
 	                {
 	                  if(error)
@@ -144,14 +146,18 @@ window.addEventListener('load', function()
 	        break
 
 	        case 'offer':
-	          var pc = peerConnections[socketId];
+              var uid = uids
+
+	          var pc = peerConnections[uid];
 	          pc.setRemoteDescription(new RTCSessionDescription({sdp:  sdp,
 	                                                             type: 'offer'}));
 
 	          // Send answer
 	          pc.createAnswer(function(answer)
               {
-	              socket.send(JSON.stringify(["answer", socketId, answer.sdp]),
+                  console.log("createAnswer: "+uid+", "+answer.sdp);
+
+	              socket.send(JSON.stringify(["answer", uid, answer.sdp]),
                   function(error)
                   {
                     if(error)
@@ -163,13 +169,17 @@ window.addEventListener('load', function()
 	        break
 
 	        case 'answer':
-	          var pc = peerConnections[socketId];
+              var uid = uids
+
+	          var pc = peerConnections[uid];
 	          pc.setRemoteDescription(new RTCSessionDescription({sdp:  sdp,
                                                                  type: 'answer'}));
             break
 
 	        case 'peer.create':
-	          var pc = createPeerConnection(socketId);
+              var uid = uids
+
+	          var pc = createPeerConnection(uid);
 	              pc.ondatachannel = function(event)
 	              {
 	                initDataChannel(pc, event.channel)
@@ -177,7 +187,9 @@ window.addEventListener('load', function()
 	        break
 
 	        case 'peer.remove':
-	          delete peerConnections[socketId];
+              var uid = uids
+
+	          delete peerConnections[uid];
 	        break
 	      }
 	    };
