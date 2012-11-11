@@ -20,9 +20,10 @@ function DCPF_install(ws_url)
   {
       var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]})
 
-      try{pc.createDataChannel()}
+      try{pc.createDataChannel("", {})}
       catch(e)
       {
+          console.log(e)
           return false
       }
 
