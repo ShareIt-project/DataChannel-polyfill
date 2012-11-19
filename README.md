@@ -24,9 +24,9 @@ use it it's a matter of three steps:
 
 3. there's no third step! :-)
 
-There's also a (public) backend server that you can use at
-wss://datachannel-polyfill.nodejitsu.com (just for testing purposes please, the
-bandwidth is high, but not infinite :-) ).
+There's also two (public) SSL enabled backend servers that you can use at
+wss://datachannel-polyfill.nodejitsu.com and wss://datachannel-piranna.dotcloud.com.
+Just for testing purposes please, the bandwidth is high, but not infinite... :-)
 
 How to test it
 --------------
