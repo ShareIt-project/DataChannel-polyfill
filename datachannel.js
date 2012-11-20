@@ -124,7 +124,8 @@ function DCPF_install(ws_url)
     if(this.readyState == "closed")
       throw INVALID_STATE_ERR;
 
-    label = label || ""
+    if(!label)
+        throw "'label' is not defined"
     dataChannelDict = dataChannelDict || {}
 
     var configuration = {label: label}
