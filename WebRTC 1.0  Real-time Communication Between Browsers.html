@@ -6,7 +6,8 @@
   "HTML Tidy for HTML5 (experimental) for Mac OS X https://github.com/w3c/tidy-html5/tree/c63cc39">
 
   <title>WebRTC 1.0: Real-time Communication Between Browsers</title>
-  <meta content="text/html; charset=utf-8" http-equiv="Content-Type"><!--
+  <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+  <!--
      After making changes to this document in the github repo, run:
       ./publish.sh webrtc.html
     to publish a new editor's draft to the W3C CVS. This assumes your
@@ -49,8 +50,7 @@
       <li>Privacy issues that arise when exposing local capabilities and local
       streams.</li>
 
-      <li>Technical discussions within the group, on the data channel in
-      particular.</li>
+      <li>Technical discussions within the group.</li>
 
       <li>Experience gained through early experimentations.</li>
 
@@ -65,10 +65,6 @@
     this specification:</p>
 
     <ul>
-      <li>Representing a multimedia stream (video, audio, or both) from local
-      devices (video cameras, microphones, Web cams) or from prerecorded files
-      provided by the user.</li>
-
       <li>Connecting to remote peers using NAT-traversal technologies such as
       ICE, STUN, and TURN.</li>
 
@@ -159,7 +155,7 @@
             [[!TURN-URI]].</p>
           </dd>
 
-          <dt>nullable DOMString credential</dt>
+          <dt>DOMString? credential</dt>
 
           <dd>
             <p>If the url element of the internal array is a TURN URI, then
@@ -233,6 +229,11 @@
           </li>
 
           <li>
+            <p>Initialize an internal variable to represent a queue of
+            <code>operations</code> with an empty set.</p>
+          </li>
+
+          <li>
             <p>Let <var>connection</var>'s <code title=
             "dom-RTCPeerConnection-localStreams"><a href=
             "#widl-RTCPeerConnection-localStreams">localStreams</a></code>
@@ -259,8 +260,42 @@
           </li>
         </ol>
 
-        <p>During the lifetime of the RTCPeerConnection object, the following
-        procedures are followed:</p>
+        <p>Once the RTCPeerConnection object has been initialized, for every
+        call to <code>createOffer</code>, <code>setLocalDescription</code>,
+        <code>createAnswer</code> and <code>setRemoteDescription</code>;
+        execute the following steps:</p>
+
+        <ol>
+          <li>
+            <p>Append an object representing the current call being handled
+            (i.e. function name and corresponding arguments) to the
+            <code>operations</code> array.</p>
+          </li>
+
+          <li>
+            <p>If the length of the <code>operations</code> array is exactly 1,
+            execute the function from the front of the queue asynchronously.</p>
+          </li>
+
+          <li>
+            <p>When the ascynchronous operation completes (either successfully
+            or with an error), remove the corresponding object from the
+            <code>operations</code> array. After removal, if the array is
+            non-empty, execute the first object queued asynchronously and
+            repeat this step on completion.</p>
+          </li>
+        </ol>
+
+        <p>The general idea is to have only one among <code>createOffer</code>,
+        <code>setLocalDescription</code>, <code>createAnswer</code> and
+        <code>setRemoteDescription</code> executing at any given time. If
+        subsequent calls are made while one of them is still executing, they
+        are added to a queue and processed when the previous operation is fully
+        completed. It is valid, and expected, for normal error handling
+        procedures to be applied.</p>
+
+        <p>Additionally, during the lifetime of the RTCPeerConnection object,
+        the following procedures are followed when an ICE event occurs:</p>
 
         <ol>
           <li>
@@ -278,13 +313,8 @@
           <li>
             <p>When the ICE Agent finishes checking all candidate pairs, if at
             least one connection has been found for each MediaStreamTrack, the
-            <var>iceState</var> is changed to "completed"; if no connection has
-            been found for any MediaStreamTrack, the iceState is changed to
-            "failed".</p>
-
-            <p class="issue">ISSUE: Note that this means that if I was able to
-            negotiate audio but not video via ICE, then <var>iceState</var> ==
-            "completed". Is this really what is desired?</p>
+            <var>iceState</var> is changed to "completed"; else the iceState is
+            changed to "failed".</p>
           </li>
 
           <li>
@@ -308,11 +338,7 @@
         user agents renegotiate for a resolution that matches the rendered
         display size.</p>
 
-        <p class="note">Starting with the native resolution means that if the
-        Web application notifies its peer of the native resolution as it starts
-        sending data, and the peer prepares its <code>video</code> element
-        accordingly, there will be no need for a renegotiation once the stream
-        is flowing.</p><!--
+        <!--
           <p>All SDP media descriptions for RTP flows represented by <code>
               <a>MediaStreamTrack</a>
             </code> objects MUST include a label attribute ("<code
@@ -326,7 +352,7 @@
           generate any candidates for media streams whose media descriptions do
           not have a label attribute ("<code>a=label:</code>"). [[!ICE]] [[!SDP]]
           [[!SDPLABEL]]  (Note: CJ - I have no idea why this is here) </p>
-          -->
+        -->
 
         <p>The word "components" in this context refers to an RTP media flow
         and does not have anything to do with how [[ICE]] uses the term
@@ -357,8 +383,7 @@
             <ol>
               <li>
                 <p>Create a <code><a>MediaStreamTrack</a></code> object
-                <var>track</var> to represent the component. [[EDITORIAL: Can
-                we just reference 3.2.1.2 here?]]</p>
+                <var>track</var> to represent the component.</p>
               </li>
 
               <li>
@@ -399,7 +424,7 @@
               <li>
                 <p>If the <var>connection</var>'s <a href=
                 "#rtcpeerconnection-readiness-state"><code>RTCPeerConnection</code>
-                readiness state</a> is <code>closed</code> (3), abort these
+                readiness state</a> is <code>closed</code>, abort these
                 steps.</p>
               </li><!-- close() was probably called just before this
          task ran -->
@@ -461,7 +486,7 @@
               <li>
                 <p>If the <var>connection</var>'s <a href=
                 "#rtcpeerconnection-readiness-state"><code>RTCPeerConnection</code>
-                readiness state</a> is <code>closed</code> (3), abort these
+                readiness state</a> is <code>closed</code>, abort these
                 steps.</p>
               </li><!-- close() was probably called just before this
          task ran -->
@@ -540,7 +565,7 @@
            -->
 
           <dt>void createOffer (RTCSessionDescriptionCallback successCallback,
-          optional RTCPeerConnectionErrorCallback failureCallback,
+          RTCPeerConnectionErrorCallback failureCallback, optional
           MediaConstraints constraints)</dt>
 
           <dd>
@@ -550,8 +575,9 @@
             attached to this <code>RTCPeerConnection</code>, the codec/RTP/RTCP
             options supported by this implementation, and any candidates that
             have been gathered by the ICE Agent. The constraints parameter may
-            be supplied to provide additional control over the offer
-            generated.</p>
+            be supplied to provide additional control over the offer generated.
+            More information about constraints can be found in
+            [[!RTCWEB-CONSTRAINTS]].</p>
 
             <p>As an offer, the generated SDP will contain the full set of
             capabilities supported by the session (as opposed to an answer,
@@ -583,11 +609,24 @@
             Identity assertions, then the session description SHALL contain an
             appropriate assertion.</p>
 
-            <p>The failureCallback will be called if the system cannot generate
-            an appropriate offer given the state of the RTCPeerConnection.</p>
+            <p>If this <code>RTCPeerConnection</code> object is closed before
+            the SDP generation process completes, the USER agent MUST suppress
+            the result and not call any of the result callbacks.</p>
 
-            <p>A TBD exception is thrown if the constraints parameter is
-            malformed.</p>
+            <p>If the SDP generation process completed successfully, the user
+            agent MUST queue a task to invoke <var>successCallback</var> with a
+            newly created <code><a>RTCSessionDescription</a></code> object,
+            representing the generated offer, as its argument.</p>
+
+            <p>If the SDP generation process failed for any reason, the user
+            agent MUST queue a task to invoke <var>errorCallback</var> with an
+            <code>RTCError</code> object of type TBD as its argument.</p>
+
+            <p>An exception with an <code>RTCError</code> object of type
+            <code>INVALID_CONSTRAINTS_TYPE</code> is thrown if the constraints
+            parameter is malformed, and an <code>RTCError</code> object of type
+            <code>INCOMPATIBLE_CONSTRAINTS</code> is provided to the failure
+            callback if the constraints could not be successfully applied.</p>
 
             <p>To Do: Discuss privacy aspects of this from a fingerprinting
             point of view - it's probably around as bad as access to a canvas
@@ -595,8 +634,8 @@
           </dd>
 
           <dt>void createAnswer (RTCSessionDescriptionCallback successCallback,
-          optional RTCPeerConnectionErrorCallback? failureCallback = null,
-          MediaConstraints constraints = null)</dt>
+          RTCPeerConnectionErrorCallback failureCallback, optional
+          MediaConstraints? constraints = null)</dt>
 
           <dd>
             <p>The createAnswer method generates an [[!SDP]] answer with the
@@ -634,16 +673,29 @@
             Identity assertions, then the session description SHALL contain an
             appropriate assertion.</p>
 
-            <p>The failureCallback will be called if the system cannot generate
-            an appropriate answer given the offer.</p>
+            <p>If this <code>RTCPeerConnection</code> object is closed before
+            the SDP generation process completes, the USER agent MUST suppress
+            the result and not call any of the result callbacks.</p>
 
-            <p>A TBD exception is thrown if the constraints parameter is
-            malformed.</p>
+            <p>If the SDP generation process completed successfully, the user
+            agent MUST queue a task to invoke <var>successCallback</var> with a
+            newly created <code><a>RTCSessionDescription</a></code> object,
+            representing the generated answer, as its argument.</p>
+
+            <p>If the SDP generation process failed for any reason, the user
+            agent MUST queue a task to invoke <var>errorCallback</var> with an
+            <code>RTCError</code> object of type TBD as its argument.</p>
+
+            <p>An exception with an <code>RTCError</code> object of type
+            <code>INVALID_CONSTRAINTS_TYPE</code> is thrown if the constraints
+            parameter is malformed, and an <code>RTCError</code> object of type
+            <code>INCOMPATIBLE_CONSTRAINTS</code> is provided to the failure
+            callback if the constraints could not be successfully applied.</p>
           </dd>
 
           <dt>void setLocalDescription (RTCSessionDescription description,
-          optional RTCVoidCallback successCallback,
-          RTCPeerConnectionErrorCallback failureCallback)</dt>
+          RTCVoidCallback successCallback, RTCPeerConnectionErrorCallback
+          failureCallback)</dt>
 
           <dd>
             <p>The <dfn id=
@@ -680,7 +732,9 @@
             back as necessary if the new description was partially applied when
             the failure occurred.</p>
 
-            <p>A TBD exception is thrown if the SDP content is invalid.</p>
+            <p>An <code>RTCError</code> object of type
+            <code>INVALID_SESSION_DESCRIPTION</code> is provided to the failure
+            callback if the SDP content is invalid.</p>
           </dd>
 
           <dt>readonly attribute RTCSessionDescription localDescription</dt>
@@ -699,8 +753,8 @@
           </dd>
 
           <dt>void setRemoteDescription (RTCSessionDescription description,
-          optional RTCVoidCallback successCallback,
-          RTCPeerConnectionErrorCallback failureCallback)</dt>
+          RTCVoidCallback successCallback, RTCPeerConnectionErrorCallback
+          failureCallback)</dt>
 
           <dd>
             <p>The <dfn id=
@@ -725,7 +779,9 @@
             back as necessary if the new description was partially applied when
             the failure occurred.</p>
 
-            <p>A TBD exception is thrown if the SDP content is invalid.</p>
+            <p>An <code>RTCError</code> object of type
+            <code>INVALID_SESSION_DESCRIPTION</code> is provided to the failure
+            callback if the SDP content is invalid.</p>
           </dd>
 
           <dt>readonly attribute RTCSessionDescription remoteDescription</dt>
@@ -775,8 +831,11 @@
               document the new procedure in the correct place.
             </div>
 
-            <p>A TBD exception will be thrown if the constraints parameter is
-            malformed.</p>
+            <p>An exception with an <code>RTCError</code> object of type
+            <code>INVALID_CONSTRAINTS_TYPE</code> is thrown if the constraints
+            parameter is malformed, and an <code>RTCError</code> object of type
+            <code>INCOMPATIBLE_CONSTRAINTS</code> is provided to the failure
+            callback if the constraints could not be successfully applied.</p>
           </dd>
 
           <dt>void addIceCandidate (RTCIceCandidate candidate)</dt>
@@ -792,8 +851,9 @@
             state if it results in different connectivity being
             established.</p>
 
-            <p>A TBD exception will be thrown if candidate parameter is
-            malformed.</p>
+            <p>An exception with an <code>RTCError</code> object of type
+            <code>INVALID_CANDIDATE_TYPE</code> is thrown if candidate
+            parameter is malformed.</p>
           </dd>
 
           <dt>readonly attribute RTCGatheringState iceGatheringState</dt>
@@ -858,8 +918,8 @@
                 <p>If the <code><a>RTCPeerConnection</a></code> object’s
                 <a href=
                 "#rtcpeerconnection-readiness-state"><code>RTCPeerConnection</code>
-                readiness state</a> is <code>closed</code> (3), throw an
-                <code>INVALID_STATE_ERR</code> exception.</p>
+                readiness state</a> is <code>closed</code>, throw an
+                <code>INVALID_STATE</code> exception.</p>
               </li>
 
               <li>
@@ -936,7 +996,7 @@
           <a href="#rtcpeerconnection-readiness-state"><code>RTCPeerConnection</code> readiness
           state</a> is <code><a href=
           "#widl-RTCPeerConnection-CLOSED">CLOSED</a></code> (3), throw an
-          <code>INVALID_STATE_ERR</code> exception.</p>
+          <code>INVALID_STATE</code> exception.</p>
         </li>
 
         <li>
@@ -986,8 +1046,9 @@
                 <p>If the <code><a>RTCPeerConnection</a></code> object's
                 <a href=
                 "#rtcpeerconnection-readiness-state"><code>RTCPeerConnection</code>
-                readiness state</a> is <code>closed</code> (3), throw an
-                <code>INVALID_STATE_ERR</code> exception.</p>
+                readiness state</a> is <code>closed</code>, abort these steps,
+                and throw an exception with an <code>RTCError</code> object of
+                type <code>INVALID_STATE</code>.</p>
               </li>
 
               <li>
@@ -1008,8 +1069,11 @@
 
               <li>
                 <p>Parse the <var>constraints</var> provided by the application
-                and apply them to the MediaStream, if possible. NOTE - need to
-                deal with throwing an exception here.</p>
+                and apply them to the MediaStream, if possible. If the
+                constraints could not be successfully applied, provide an
+                <code>RTCError</code> object of type
+                <code>INCOMPATIBLE_CONSTRAINTS</code> to the failure
+                callback.</p>
               </li>
 
               <li>
@@ -1042,8 +1106,8 @@
                 <p>If the <code><a>RTCPeerConnection</a></code> object's
                 <a href=
                 "#rtcpeerconnection-readiness-state"><code>RTCPeerConnection</code>
-                readiness state</a> is <code>closed</code> (3), throw an
-                <code>INVALID_STATE_ERR</code> exception.</p>
+                readiness state</a> is <code>closed</code>, throw an
+                <code>INVALID_STATE</code> exception.</p>
               </li>
 
               <li>
@@ -1051,8 +1115,7 @@
                 <code><a>RTCPeerConnection</a></code> object's <code title=
                 "dom-RTCPeerConnection-localStreams"><a href=
                 "#widl-RTCPeerConnection-localStreams">localStreams</a></code>
-                object, then abort these steps. TODO: Do we need an exception
-                here?</p>
+                object, then abort these steps.</p>
               </li>
 
               <li>
@@ -1104,9 +1167,9 @@
                   <li>
                     <p>If the <var>connection</var>'s <a href=
                     "#peerconnection-readiness-state"><code>RTCPeerConnection</code>
-                    readiness state</a> is <code><a href=
-                    "#widl-RTCPeerConnection-CLOSED">CLOSED</a></code> (3),
-                    abort these steps.</p>
+                    readiness state</a> is <code>closed</code>, abort these
+                    steps, and throw an exception with an <code>RTCError</code>
+                    object of type <code>INVALID_STATE</code>.</p>
                   </li>
 
                   <li>
@@ -1141,9 +1204,8 @@
               <li>
                 <p>If the <var>connection</var>'s <a href=
                 "#peerconnection-readiness-state"><code>RTCPeerConnection</code>
-                readiness state</a> is <code><a href=
-                "#widl-RTCPeerConnection-CLOSED">CLOSED</a></code> (3), abort
-                these steps.</p>
+                readiness state</a> is <code>closed</code>, abort these
+                steps.</p>
               </li><!-- close() was probably called just before this
                         task ran -->
 
@@ -1162,8 +1224,7 @@
           </dd>
 
           <dt>void getStats(MediaStreamTrack? selector, RTCStatsCallback
-          successCallback, optional RTCPeerConnectionErrorCallback
-          failureCallback)</dt>
+          successCallback, RTCPeerConnectionErrorCallback failureCallback)</dt>
 
           <dd>
             <p>When the <dfn id="dom-peerconnection-getStats"><code title=
@@ -1175,8 +1236,8 @@
                 <p>If the <code><a>RTCPeerConnection</a></code> object's
                 <a href=
                 "#rtcpeerconnection-readiness-state"><code>RTCPeerConnection</code>
-                readiness state</a> is <code>closed</code> (3), throw an
-                <code>INVALID_STATE_ERR</code> exception.</p>
+                readiness state</a> is <code>closed</code>, throw an
+                <code>INVALID_STATE</code> exception.</p>
               </li>
 
               <li>
@@ -1225,8 +1286,8 @@
                 <p>If the <code><a>RTCPeerConnection</a></code> object's
                 <a href=
                 "#rtcpeerconnection-readiness-state"><code>RTCPeerConnection</code>
-                readiness state</a> is <code>closed</code> (3), throw an
-                <code>INVALID_STATE_ERR</code> exception.</p>
+                readiness state</a> is <code>closed</code>, throw an
+                <code>INVALID_STATE</code> exception.</p>
               </li>
 
               <li>
@@ -1240,12 +1301,12 @@
               <li>
                 <p>Set the object's <a href=
                 "#rtcpeerconnection-readiness-state"><code>RTCPeerConnection</code>
-                readiness state</a> to <code>closed</code> (3).</p>
+                readiness state</a> to <code>closed</code>.</p>
               </li>
             </ol>
           </dd>
 
-          <dt>attribute EventHandler onnegotationneeded</dt>
+          <dt>attribute EventHandler onnegotiationneeded</dt>
 
           <dd>This event handler, of event handler event type <code><a href=
           "#event-negotiation-needed">negotiationneeded</a></code> , MUST be
@@ -1560,13 +1621,143 @@
         <h4>RTCPeerConnectionErrorCallback</h4>
 
         <dl title='callback RTCPeerConnectionErrorCallback = void' class='idl'>
-          <dt>DOMString errorInformation</dt>
+          <dt>RTCError error</dt>
+
+          <dd>An error object encapsulating information about what went
+          wrong.</dd>
+        </dl>
+      </section>
+    </section>
+
+    <section>
+      <h3>Error Handling</h3>
+
+      <section>
+        <h4>General Principles</h4>
+
+        <p>Errors are indicated in two ways: exceptions and objects passed to
+        error callbacks. Both forms of error reporting MUST provide an object
+        of type <code>RTCError</code>. An exception MUST be thrown in the
+        following cases:</p>
+
+        <ul>
+          <li>The type of any argument passed to a function did not match what
+          was expected. An appropriate string from the
+          <code>RTCExceptionName</code> enum MUST be used as the error
+          name.</li>
+
+          <li>A function call was made when the RTCPeerConnection is in an
+          invalid state, or a state in which that particular function is not
+          allowed to be executed. In this case, the string
+          <code>INVALID_STATE</code> MUST be used as the error name.</li>
+        </ul>
+
+        <p>In all other cases, an error object MUST be provided to the failure
+        callback. The error name in the object provided MUST be picked from
+        either the <code>RTCExceptionName</code> or <code>RTCErrorName</code>
+        enums.</p>
+      </section>
+
+      <section>
+        <h4>RTCError</h4>
+
+        <dl class='idl' title='interface RTCError'>
+          <dt>readonly attribute DOMString name</dt>
+
+          <dd>A string representing the type of error. This string must be one
+          of those defined by the <code>RTCExceptionName</code> or
+          <code>RTCErrorName</code> enums for the error object to be
+          valid.</dd>
+
+          <dt>readonly attribute DOMString? message</dt>
+
+          <dd>A human readable description of the error. This string may vary
+          between different user agents.</dd>
+        </dl>
+      </section>
+
+      <section>
+        <h4>RTCSdpError</h4>
+
+        <dl class='idl' title='interface RTCSdpError : RTCError'>
+          <dt>readonly attribute long sdpLineNumber</dt>
 
           <dd>
-            Information about what went wrong.
-
-            <p class="issue">ISSUE: Should this be an enum?</p>
+            The line number of an <a>RTCSessionDescription</a> at which the
+            error was encountered.
           </dd>
+        </dl>
+      </section>
+
+      <section>
+        <h4>RTCExceptionName</h4>
+
+        <dl class='idl' title='enum RTCExceptionName'>
+          <dt>INVALID_SUCCESS_CALLBACK</dt>
+
+          <dd>The provided successCallback is not a function.</dd>
+
+          <dt>INVALID_FAILURE_CALLBACK</dt>
+
+          <dd>The provided failureCallback is not a function.</dd>
+
+          <dt>INVALID_CONSTRAINTS_TYPE</dt>
+
+          <dd>The provided constraints object is not a dictionary with either
+          the <code>mandatory</code> or <code>optional</code> keys.</dd>
+
+          <dt>INVALID_SESSION_DESCRIPTION_TYPE</dt>
+
+          <dd>The provided session description is not an object of type
+          <code>RTCSessionDescription</code>.</dd>
+
+          <dt>INVALID_CONFIGURATION_TYPE</dt>
+
+          <dd>The provided configuration is not an object of type
+          <code>RTCConfiguration</code>.</dd>
+
+          <dt>INVALID_CANDIDATE_TYPE</dt>
+
+          <dd>The provided candidate is not an object of type
+          <code>RTCIceCandidate</code>.</dd>
+
+          <dt>INVALID_MEDIASTREAM</dt>
+
+          <dd>The provided media stream is not an object of type
+          <code>MediaStream</code>.</dd>
+
+          <dt>INVALID_MEDIASTREAM_TRACK</dt>
+
+          <dd>The provided track is not an object of type
+          <code>MediaStreamTrack</code>.</dd>
+
+          <dt>INVALID_STATE</dt>
+
+          <dd>The function was called on a <code>RTCPeerConnection</code> that
+          is an invalid state, or a state in which the function is not allowed
+          to be executed.</dd>
+        </dl>
+      </section>
+
+      <section>
+        <h4>RTCErrorName</h4>
+
+        <dl class='idl' title='enum RTCErrorName'>
+          <dt>INVALID_SESSION_DESCRIPTION</dt>
+
+          <dd>The provided <code>RTCSessionDescription</code> either contained
+          invalid SDP, or SDP that could not be correctly applied to the
+          <code>RTCPeerConnection</code> due to its current state. User agents
+          SHOULD provide as much additional information in the error message as
+          possible, including the <code>sdpLineNumber</code>, if
+          appropriate.</dd>
+
+          <dt>INCOMPATIBLE_CONSTRAINTS</dt>
+
+          <dd>The provided <code>MediaConstraints</code> could not be correctly
+          applied to the <code>RTCPeerConnection</code> due to its current
+          state. User agents SHOULD provide as much additional information in
+          the error message as possible.</dd>
         </dl>
       </section>
     </section>
@@ -1797,8 +1988,7 @@
           <p>If the associated <code><a>RTCPeerConnection</a></code> object's
           <a href=
           "#rtcpeerconnection-readiness-state"><code>RTCPeerConnection</code>
-          readiness state</a> is <code>closed</code> (3), abort these
-          steps.</p>
+          readiness state</a> is <code>closed</code>, abort these steps.</p>
         </li>
 
         <li>
@@ -1827,8 +2017,7 @@
           <p>If the associated <code><a>RTCPeerConnection</a></code> object's
           <a href=
           "#rtcpeerconnection-readiness-state"><code>RTCPeerConnection</code>
-          readiness state</a> is <code>closed</code> (3), abort these
-          steps.</p>
+          readiness state</a> is <code>closed</code>, abort these steps.</p>
         </li>
 
         <li>
@@ -1931,7 +2120,7 @@
             <li>
               <p>Set <var>channel</var>'s <code><a href=
               "#dom-datachannel-readystate">readyState</a></code> attribute to
-              <code>closed</code> (3).</p>
+              <code>closed</code>.</p>
             </li>
 
             <li>
@@ -2727,9 +2916,8 @@ function processStats() {
 
       <p>A track in a <code><a>MediaStream</a></code>, received with an
       <code><a>RTCPeerConnection</a></code>, MUST have its
-      <code>readyState</code> attribute [[!GETUSERMEDIA]] set to <code><a href=
-      "#event-mediastreamtrack-muted">muted</a></code> (1) until media data
-      arrives.</p>
+      <code>readyState</code> attribute [[!GETUSERMEDIA]] set to
+      <code>muted</code> until media data arrives.</p>
 
       <p>In addition, a <code>MediaStreamTrack</code> has its
       <code>readyState</code> set to <code>muted</code> on the remote peer if
@@ -2863,51 +3051,63 @@ function processStats() {
         mechanism they used to establish that they were going to communicate in
         the first place.</p>
         <pre class="example sh_javascript">
-var signalingChannel = createSignalingChannel();
-var pc;
-var configuration = ...;
 
-// run start(true) to initiate a call
-function start(isCaller) {
+var signalingChannel = new SignalingChannel();
+var configuration = { "iceServers": [{ "url": "stun:stun.example.org" }] };
+var pc;
+
+// call start() to initiate
+function start() {
     pc = new RTCPeerConnection(configuration);
 
     // send any ice candidates to the other peer
     pc.onicecandidate = function (evt) {
-        signalingChannel.send(JSON.stringify({ "candidate": evt.candidate }));
+        if (evt.candidate)
+            signalingChannel.send(JSON.stringify({ "candidate": evt.candidate }));
     };
+
+    // let the "negotiationneeded" event trigger offer generation
+    pc.onnegotiationneeded = function () {
+        pc.createOffer(localDescCreated, logError);
+    }
 
     // once remote stream arrives, show it in the remote video element
     pc.onaddstream = function (evt) {
         remoteView.src = URL.createObjectURL(evt.stream);
     };
 
-    // get the local stream, show it in the local video element and send it
+    // get a local stream, show it in a self-view and add it to be sent
     navigator.getUserMedia({ "audio": true, "video": true }, function (stream) {
         selfView.src = URL.createObjectURL(stream);
         pc.addStream(stream);
-
-        if (isCaller)
-            pc.createOffer(gotDescription);
-        else
-            pc.createAnswer(gotDescription);
-
-        function gotDescription(desc) {
-            pc.setLocalDescription(desc);
-            signalingChannel.send(JSON.stringify({ "sdp": desc }));
-        }
     });
+}
+
+function localDescCreated(desc) {
+    pc.setLocalDescription(desc, function () {
+        signalingChannel.send(JSON.stringify({ "sdp": pc.localDescription }));
+    }, logError);
 }
 
 signalingChannel.onmessage = function (evt) {
     if (!pc)
-        start(false);
+        start();
 
-    var signal = JSON.parse(evt.data);
-    if (signal.sdp)
-        pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+    var message = JSON.parse(evt.data);
+    if (message.sdp)
+        pc.setRemoteDescription(new RTCSessionDescription(message.sdp), function () {
+            // if we received an offer, we need to answer
+            if (pc.remoteDescription.type == "offer")
+                pc.createAnswer(localDescCreated, logError);
+        }, logError);
     else
-        pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+        pc.addIceCandidate(new RTCIceCandidate(message.candidate));
 };
+
+function logError(error) {
+    log(error.name + ": " + error.message);
+}
+
         
 </pre>
       </div>
@@ -2946,23 +3146,24 @@ TODO
         <code>negotiationneeded</code> event will not do so during an ongoing
         offer/answer dialog.</p>
         <pre class="example sh_javascript">
-var signalingChannel = createSignalingChannel();
+var signalingChannel = new SignalingChannel();
+var configuration = { "iceServers": [{ "url": "stun:stun.example.org" }] };
 var pc;
-var configuration = "...";
 var channel;
 
 // call start(true) to initiate
 function start(isInitiator) {
-    pc = new PeerConnection(configuration);
+    pc = new RTCPeerConnection(configuration);
 
     // send any ice candidates to the other peer
     pc.onicecandidate = function (evt) {
-        signalingChannel.send(JSON.stringify({ "candidate": evt.candidate }));
+        if (evt.candidate)
+            signalingChannel.send(JSON.stringify({ "candidate": evt.candidate }));
     };
 
-    // let the "negotiationneeded" event trigger negotiation
+    // let the "negotiationneeded" event trigger offer generation
     pc.onnegotiationneeded = function () {
-        pc.createOffer(localDescCreated);
+        pc.createOffer(localDescCreated, logError);
     }
 
     if (isInitiator) {
@@ -2981,7 +3182,7 @@ function start(isInitiator) {
 function localDescCreated(desc) {
     pc.setLocalDescription(desc, function () {
         signalingChannel.send(JSON.stringify({ "sdp": pc.localDescription }));
-    });
+    }, logError);
 }
 
 signalingChannel.onmessage = function (evt) {
@@ -2990,12 +3191,13 @@ signalingChannel.onmessage = function (evt) {
 
     var message = JSON.parse(evt.data);
     if (message.sdp)
-        pc.setRemoteDescription(new SessionDescription(message.sdp), function () {
+        pc.setRemoteDescription(new RTCSessionDescription(message.sdp), function () {
+            // if we received an offer, we need to answer
             if (pc.remoteDescription.type == "offer")
-                createAnswer(localDescCreated);
-        });
+                pc.createAnswer(localDescCreated, logError);
+        }, logError);
     else
-        pc.addIceCandidate(new IceCandidate(message.candidate));
+        pc.addIceCandidate(new RTCIceCandidate(message.candidate));
 };
 
 function setupChat() {
@@ -3013,6 +3215,9 @@ function sendChatMessage(msg) {
     channel.send(msg);
 }
 
+function logError(error) {
+    log(error.name + ": " + error.message);
+}
         
 </pre>
       </div><!--div>
@@ -3039,16 +3244,15 @@ var gameDataChan = peerConn.createDataChannel("data", { "reliable": false, "prio
 
       <p><img alt=
       "A message sequence chart detailing a call flow between two browsers"
-      src="images/ladder-2party-simple.svg" style="width:100%"></p>
-
+      src="images/ladder-2party-simple.svg" style="width:100%"></p><!--
       <p>The following flow shows a more complete set of the callbacks and
       events that happen.</p>
 
       <p><img alt=
       "A more complete message sequence chart detailing a call flow between two browsers"
       src="images/ladder-2party-full.svg" style="width:100%"></p>
-    </section>
-
+      -->
+    </section><!--
     <section>
       <h3>Call Flow Browser to MCU</h3>
 
@@ -3064,6 +3268,7 @@ var gameDataChan = peerConn.createDataChannel("data", { "reliable": false, "prio
       "A message sequence chart detailing a call flow between a browser and a centralized conferencing server"
       src="images/ladder-mcu-simple.svg" style="width:100%"></p>
     </section>
+-->
   </section>
 
   <section class="informative">
@@ -3251,6 +3456,12 @@ var gameDataChan = peerConn.createDataChannel("data", { "reliable": false, "prio
   </section>
 
   <section>
+    <h2>Security Considerations</h2>
+
+    <p>TBD.</p>
+  </section>
+
+  <section>
     <h2 id="sec-iana">IANA Registrations</h2>
 
     <p>IANA is requested to register the constraints defined in <a href=
@@ -3360,18 +3571,44 @@ var gameDataChan = peerConn.createDataChannel("data", { "reliable": false, "prio
   </section>
 
   <section>
-    <h2>Security Considerations</h2>
-
-    <p>TBD.</p>
-  </section>
-
-  <section>
     <h2>Change Log</h2>
 
     <p>This section will be removed before publication.</p>
     <!-- Why do the first two headings automatically convert to <h2>? -->
 
-    <h3>Changes since Sept 23 , 2012</h3>
+    <h3>Changes since Nov 13, 2012</h3>
+
+    <ol>
+      <li>Made some clarifications as to how operation queuing works, and fixed
+      a few errors with the error handling description.</li>
+    </ol>
+
+    <h3>Changes since Nov 03, 2012</h3>
+
+    <ol>
+      <li>Added text describing the queuing mechanism for
+      RTCPeerConnection.</li>
+
+      <li>Updated simple P2P example to include all mandatory (error)
+      callbacks.</li>
+
+      <li>Updated P2P data example to include all mandatory (error) callbacks.
+      Also added some missing RTC prefixes.</li>
+    </ol>
+
+    <h3>Changes since Oct 19, 2012</h3>
+
+    <ol>
+      <li>Clarified how createOffer() and createAnswer() use their
+      callbacks.</li>
+
+      <li>Made all failure callbacks mandatory.</li>
+
+      <li>Added error object types, general error handling principles, and
+      rules for when errors should be thrown.</li>
+    </ol>
+
+    <h3>Changes since Sept 23, 2012</h3>
 
     <ol>
       <li>Restructured the document layout and created separate sections for
