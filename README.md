@@ -42,6 +42,9 @@ or just learn how to use the DataChannel API. To run it
 
 4. open several browsers pointing to http://localhost:8000 to start chatting :-)
 
+Don't worry about the dotcloud.yml and supervisord.conf files, they are specific
+for the dotCloud backend server.
+
 Requeriments
 ------------
 * a web browser with the PeerConnection object (currently Chrome/Chromium >= 19)
