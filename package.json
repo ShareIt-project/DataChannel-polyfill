@@ -6,7 +6,7 @@
   },
   "subdomain": "DataChannel-polyfill",
   "scripts": {
-    "start": "app.js"
+    "start": "server.js"
   },
   "engines": {
     "node": "0.8.x"

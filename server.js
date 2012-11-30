@@ -5,8 +5,8 @@ var options = {key:  fs.readFileSync('certs/privatekey.pem').toString(),
                cert: fs.readFileSync('certs/certificate.pem').toString(),
                ca:  [fs.readFileSync('certs/certrequest.csr').toString()]}
 
-// Get AppFog port, or set 8002 as default one
-var port = process.env.VMC_APP_PORT || 8002
+// Get AppFog port, or set 8080 as default one (dotCloud mandatory)
+var port = process.env.VMC_APP_PORT || 8080
 
 // HTTP server
 function requestListener(req, res)

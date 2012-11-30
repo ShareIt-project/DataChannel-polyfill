@@ -20,7 +20,7 @@ function DCPF_install(ws_url)
   {
       var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]})
 
-      try{pc.createDataChannel("", {})}
+      try{pc.createDataChannel('DCPF_install__checkSupport')}
       catch(e)
       {
           console.log(e)
@@ -126,7 +126,8 @@ function DCPF_install(ws_url)
     if(this.readyState == "closed")
       throw INVALID_STATE_ERR;
 
-    label = label || ""
+    if(!label)
+        throw "'label' is not defined"
     dataChannelDict = dataChannelDict || {}
 
     var configuration = {label: label}
