@@ -59,23 +59,23 @@ function DCPF_install(ws_url)
   // defined ID and wait for new 'create' messages to create new DataChannels
   function setId(pc, id)
   {
-    var socket = new WebSocket(ws_url)
-        socket.onopen = function()
-        {
-            socket.onmessage = function(message)
-            {
-                var args = JSON.parse(message.data)
+    pc._signaling = new WebSocket(ws_url)
+    pc._signaling.onopen = function()
+    {
+      this.onmessage = function(message)
+      {
+        var args = JSON.parse(message.data)
 
-                if(args[0] == 'create')
-                    ondatachannel(pc, args[1], args[2])
-            }
+        if(args[0] == 'create')
+          ondatachannel(pc, args[1], args[2])
+      }
 
-            socket.send(JSON.stringify(['setId', "pc."+id, false]))
-        }
-        socket.onerror = function(error)
-        {
-            console.error(error)
-        }
+      this.send(JSON.stringify(['setId', "pc."+id, false]))
+    }
+    pc._signaling.onerror = function(error)
+    {
+      console.error(error)
+    }
   }
 
   // Set the PeerConnection peer ID
@@ -140,29 +140,41 @@ function DCPF_install(ws_url)
           // Wait until the other end of the channel is ready
           channel._udt.onmessage = function(message)
           {
-            if(message.data == 'ready')
+            switch(message.data)
             {
-              // PeerConnection is closed, do nothing
-              if(self.readyState == "closed")
-                return;
+              // Both peers support native DataChannels
+              case 'create.native':
+                // Close the ad-hoc signaling channel
+                self._signaling.close()
 
-              // Set onmessage event to bypass messages to user defined function
-              channel._udt.onmessage = function(message)
-              {
-                if(channel.onmessage)
-                  channel.onmessage(message)
-              }
+                // start native DataChannel connection
+                // make native DataChannels to be created by default
+                break
 
-              // Set channel as open
-              channel.readyState = "open"
+              // Connection through backend server is ready
+              case 'ready':
+                // PeerConnection is closed, do nothing
+                if(self.readyState == "closed")
+                  return;
 
-              if(channel.onopen)
-                channel.onopen()
+                // Set onmessage event to bypass messages to user defined function
+                channel._udt.onmessage = function(message)
+                {
+                  if(channel.onmessage)
+                    channel.onmessage(message)
+                }
+
+                // Set channel as open
+                channel.readyState = "open"
+
+                if(channel.onopen)
+                  channel.onopen()
             }
           }
 
           // Query to the other peer to create a new DataChannel with us
-          channel.send(JSON.stringify(["create", self._peerId, configuration]))
+          channel.send(JSON.stringify(["create", self._peerId, configuration,
+                                       false]))
         }
 
     return channel
