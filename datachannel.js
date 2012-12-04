@@ -85,7 +85,7 @@ function DCPF_install(ws_url)
   }
 
   // Private DataChannel factory function
-  function createDataChannel(pc, configuration)
+  function createPolyfill(pc, configuration)
   {
     var channel = new RTCDataChannel()
         channel.label = configuration.label
@@ -112,6 +112,9 @@ function DCPF_install(ws_url)
     return channel
   }
 
+  // Overwrite createDataChannel to enable the polyfill
+  var createDataChannel = RTCPeerConnection.prototype.createDataChannel
+
   // Public function to initiate the creation of a new DataChannel
   RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
   {
@@ -134,7 +137,7 @@ function DCPF_install(ws_url)
 
     var self = this
 
-    var channel = createDataChannel(this, configuration)
+    var channel = createPolyfill(this, configuration)
         channel._udt.onopen = function()
         {
           // Wait until the other end of the channel is ready
@@ -147,8 +150,14 @@ function DCPF_install(ws_url)
                 // Close the ad-hoc signaling channel
                 self._signaling.close()
 
-                // start native DataChannel connection
-                // make native DataChannels to be created by default
+                if(createDataChannel)
+                {
+                  // Make native DataChannels to be created by default
+                  self.prototype.createDataChannel = createDataChannel
+
+                  // Start native DataChannel connection
+                  self.createDataChannel(label, dataChannelDict)
+                }
                 break
 
               // Connection through backend server is ready
@@ -186,7 +195,7 @@ function DCPF_install(ws_url)
     if(pc.readyState == "closed")
       return;
 
-    var channel = createDataChannel(pc, configuration)
+    var channel = createPolyfill(pc, configuration)
         channel._udt.onopen = function()
         {
             // Set onmessage event to bypass messages to user defined function
