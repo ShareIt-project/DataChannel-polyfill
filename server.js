@@ -98,6 +98,7 @@ wss.on('connection', function(socket)
             // Register peer signaling socket with this ID
             case 'setId':
                 wss.sockets[socketId] = socket
+                wss.sockets[socketId].nativeSupport = args[2]
         }
     };
 

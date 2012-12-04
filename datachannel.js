@@ -70,7 +70,7 @@ function DCPF_install(ws_url)
                     ondatachannel(pc, args[1], args[2])
             }
 
-            socket.send(JSON.stringify(['setId', "pc."+id]))
+            socket.send(JSON.stringify(['setId', "pc."+id, false]))
         }
         socket.onerror = function(error)
         {
