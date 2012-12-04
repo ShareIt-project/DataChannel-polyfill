@@ -22,13 +22,15 @@ function DCPF_install(ws_url)
       try{pc.createDataChannel('DCPF_install__checkSupport')}
       catch(e)
       {
-          return false
+          return
       }
 
-      return true
+      return RTCPeerConnection.prototype.createDataChannel
   }
 
-  if(checkSupport())
+  // Check for native createDataChannel support to enable the polyfill
+  var createDataChannel = checkSupport()
+  if(createDataChannel)
   {
     console.log("Using native WebRTC DataChannel");
     return "native";
@@ -70,7 +72,7 @@ function DCPF_install(ws_url)
           ondatachannel(pc, args[1], args[2])
       }
 
-      this.send(JSON.stringify(['setId', "pc."+id, false]))
+      this.send(JSON.stringify(['setId', "pc."+id, Boolean(createDataChannel)]))
     }
     pc._signaling.onerror = function(error)
     {
@@ -112,9 +114,6 @@ function DCPF_install(ws_url)
     return channel
   }
 
-  // Overwrite createDataChannel to enable the polyfill
-  var createDataChannel = RTCPeerConnection.prototype.createDataChannel
-
   // Public function to initiate the creation of a new DataChannel
   RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
   {
@@ -150,14 +149,11 @@ function DCPF_install(ws_url)
                 // Close the ad-hoc signaling channel
                 self._signaling.close()
 
-                if(createDataChannel)
-                {
-                  // Make native DataChannels to be created by default
-                  self.prototype.createDataChannel = createDataChannel
+                // Make native DataChannels to be created by default
+                self.prototype.createDataChannel = createDataChannel
 
-                  // Start native DataChannel connection
-                  self.createDataChannel(label, dataChannelDict)
-                }
+                // Start native DataChannel connection
+                self.createDataChannel(label, dataChannelDict)
                 break
 
               // Connection through backend server is ready
@@ -183,7 +179,7 @@ function DCPF_install(ws_url)
 
           // Query to the other peer to create a new DataChannel with us
           channel.send(JSON.stringify(["create", self._peerId, configuration,
-                                       false]))
+                                       Boolean(createDataChannel)]))
         }
 
     return channel
