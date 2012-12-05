@@ -61,8 +61,17 @@ function DCPF_install(ws_url)
       {
         var args = JSON.parse(message.data)
 
-        if(args[0] == 'create')
-          ondatachannel(pc, args[1], args[2])
+        switch(args[0])
+        {
+          case 'create':
+            ondatachannel(pc, args[1], args[2])
+            break
+
+          // Both peers support native DataChannels
+          case 'create.native':
+            // Make native DataChannels to be created by default
+            pc.prototype.createDataChannel = createDataChannel
+        }
       }
 
       this.send(JSON.stringify(['setId', "pc."+id, Boolean(createDataChannel)]))

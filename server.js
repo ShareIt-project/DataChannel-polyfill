@@ -54,8 +54,9 @@ wss.on('connection', function(socket)
                     // Both peers support native DataChannels
                     if(args[3] && soc.nativeSupport)
                     {
-                        // Notify that peer has native support
-                        socket.send(JSON.stringify(['create.native', socketId]))
+                        // Notify that both peers has native support
+                        socket.send(JSON.stringify(['create.native']))
+                        soc.send(JSON.stringify(['create.native']))
 
                         // Close both peers since they have native support
                         socket.close();
