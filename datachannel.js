@@ -30,13 +30,6 @@ function DCPF_install(ws_url)
 
   // Check for native createDataChannel support to enable the polyfill
   var createDataChannel = checkSupport()
-  if(createDataChannel)
-  {
-    console.log("Using native WebRTC DataChannel");
-    return "native";
-  }
-
-  console.warn("Adding WebRTC DataChannel polyfill...");
 
   // DataChannel polyfill using WebSockets as 'underlying data transport'
   function RTCDataChannel()
@@ -242,5 +235,13 @@ function DCPF_install(ws_url)
     setRemoteDescription.call(this, description, successCallback, failureCallback)
   }
 
+  // Notify to the user if we have native DataChannels support or not
+  if(createDataChannel)
+  {
+    console.log("Both native and polyfill WebRTC DataChannel are available");
+    return "native";
+  }
+
+  console.warn("WebRTC DataChannel is only available thought polyfill");
   return "polyfill";
 }
