@@ -23,20 +23,14 @@ function DCPF_install(ws_url)
       try{pc.createDataChannel('DCPF_install__checkSupport')}
       catch(e)
       {
-          console.log(e)
-          return false
+          return
       }
 
-      return true
+      return RTCPeerConnection.prototype.createDataChannel
   }
 
-  if(checkSupport())
-  {
-    console.log("Using native WebRTC DataChannel");
-    return "native";
-  }
-
-  console.warn("Adding WebRTC DataChannel polyfill...");
+  // Check for native createDataChannel support to enable the polyfill
+  var createDataChannel = checkSupport()
 
   // DataChannel polyfill using WebSockets as 'underlying data transport'
   function RTCDataChannel()
@@ -61,23 +55,32 @@ function DCPF_install(ws_url)
   // defined ID and wait for new 'create' messages to create new DataChannels
   function setId(pc, id)
   {
-    var socket = new WebSocket(ws_url)
-        socket.onopen = function()
-        {
-            socket.onmessage = function(message)
-            {
-                var args = JSON.parse(message.data)
+    pc._signaling = new WebSocket(ws_url)
+    pc._signaling.onopen = function()
+    {
+      this.onmessage = function(message)
+      {
+        var args = JSON.parse(message.data)
 
-                if(args[0] == 'create')
-                    ondatachannel(pc, args[1], args[2])
-            }
-
-            socket.send(JSON.stringify(['setId', "pc."+id]))
-        }
-        socket.onerror = function(error)
+        switch(args[0])
         {
-            console.error(error)
+          case 'create':
+            ondatachannel(pc, args[1], args[2])
+            break
+
+          // Both peers support native DataChannels
+          case 'create.native':
+            // Make native DataChannels to be created by default
+            pc.prototype.createDataChannel = createDataChannel
         }
+      }
+
+      this.send(JSON.stringify(['setId', "pc."+id, Boolean(createDataChannel)]))
+    }
+    pc._signaling.onerror = function(error)
+    {
+      console.error(error)
+    }
   }
 
   // Set the PeerConnection peer ID
@@ -87,7 +90,7 @@ function DCPF_install(ws_url)
   }
 
   // Private DataChannel factory function
-  function createDataChannel(pc, configuration)
+  function createPolyfill(pc, configuration)
   {
     var channel = new RTCDataChannel()
         channel.label = configuration.label
@@ -136,35 +139,50 @@ function DCPF_install(ws_url)
 
     var self = this
 
-    var channel = createDataChannel(this, configuration)
+    var channel = createPolyfill(this, configuration)
         channel._udt.onopen = function()
         {
           // Wait until the other end of the channel is ready
           channel._udt.onmessage = function(message)
           {
-            if(message.data == 'ready')
+            switch(message.data)
             {
-              // PeerConnection is closed, do nothing
-              if(self.readyState == "closed")
-                return;
+              // Both peers support native DataChannels
+              case 'create.native':
+                // Close the ad-hoc signaling channel
+                self._signaling.close()
 
-              // Set onmessage event to bypass messages to user defined function
-              channel._udt.onmessage = function(message)
-              {
-                if(channel.onmessage)
-                  channel.onmessage(message)
-              }
+                // Make native DataChannels to be created by default
+                self.prototype.createDataChannel = createDataChannel
 
-              // Set channel as open
-              channel.readyState = "open"
+                // Start native DataChannel connection
+                self.createDataChannel(label, dataChannelDict)
+                break
 
-              if(channel.onopen)
-                channel.onopen()
+              // Connection through backend server is ready
+              case 'ready':
+                // PeerConnection is closed, do nothing
+                if(self.readyState == "closed")
+                  return;
+
+                // Set onmessage event to bypass messages to user defined function
+                channel._udt.onmessage = function(message)
+                {
+                  if(channel.onmessage)
+                    channel.onmessage(message)
+                }
+
+                // Set channel as open
+                channel.readyState = "open"
+
+                if(channel.onopen)
+                  channel.onopen()
             }
           }
 
           // Query to the other peer to create a new DataChannel with us
-          channel.send(JSON.stringify(["create", self._peerId, configuration]))
+          channel.send(JSON.stringify(["create", self._peerId, configuration,
+                                       Boolean(createDataChannel)]))
         }
 
     return channel
@@ -176,7 +194,7 @@ function DCPF_install(ws_url)
     if(pc.readyState == "closed")
       return;
 
-    var channel = createDataChannel(pc, configuration)
+    var channel = createPolyfill(pc, configuration)
         channel._udt.onopen = function()
         {
             // Set onmessage event to bypass messages to user defined function
@@ -227,5 +245,13 @@ function DCPF_install(ws_url)
     setRemoteDescription.call(this, description, successCallback, failureCallback)
   }
 
+  // Notify to the user if we have native DataChannels support or not
+  if(createDataChannel)
+  {
+    console.log("Both native and polyfill WebRTC DataChannel are available");
+    return "native";
+  }
+
+  console.warn("WebRTC DataChannel is only available thought polyfill");
   return "polyfill";
 }

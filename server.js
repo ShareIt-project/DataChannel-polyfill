@@ -51,11 +51,31 @@ wss.on('connection', function(socket)
             case 'create':  // socketId is the peer ID
                 if(soc)
                 {
-                    socket.id = id()
-                    wss.sockets[socket.id] = socket
+                    // Both peers support native DataChannels
+                    if(args[3] && soc.nativeSupport)
+                    {
+                        // Notify that both peers has native support
+                        socket.send(JSON.stringify(['create.native']))
+                        soc.send(JSON.stringify(['create.native']))
 
-                    args[1] = socket.id
-                    soc.send(JSON.stringify(args))
+                        // Close both peers since they have native support
+                        socket.close();
+                        soc.close();
+                    }
+
+                    // At least one of the peers doesn't support DataChannels
+                    else
+                    {
+                        // Register the new peer connection
+                        socket.id = id()
+                        wss.sockets[socket.id] = socket
+
+                        // Send the other peer the request to connect
+                        args[1] = socket.id
+                        args.splice(3, 1)
+
+                        soc.send(JSON.stringify(args))
+                    }
                 }
 
                 // Second peer was not connected
@@ -98,6 +118,7 @@ wss.on('connection', function(socket)
             // Register peer signaling socket with this ID
             case 'setId':
                 wss.sockets[socketId] = socket
+                wss.sockets[socketId].nativeSupport = args[2]
         }
     };
 
