@@ -153,7 +153,7 @@ function DCPF_install(ws_url)
               case 'create.native':
                 // Close the ad-hoc signaling channel
                 try {
-                  this._signaling.close();
+                  self._signaling.close();
                 } catch (e) { };
 
                 // Make native DataChannels to be created by default
