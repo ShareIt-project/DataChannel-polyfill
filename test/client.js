@@ -116,36 +116,33 @@ window.addEventListener('load', function()
 	          {
 	            var uid = uids[i]
 
-	            navigator.mozGetUserMedia({video:true,fake:true}, function (vs)
-	            {
-                  // Create PeerConnection
-	              var pc = createPeerConnection(uid);
-                      pc.onconnection = function()
-                      {
-                        var channel = pc.createDataChannel('chat')
-
-                        initDataChannel(pc, channel)
-                      }
-
-                  // Send offer to new PeerConnection
-                  pc.createOffer(function(offer)
-                  {
-                    console.log("createOffer: "+uid+", "+offer.sdp);
-
-                    socket.send(JSON.stringify(["offer", uid, offer.sdp]),
-                    function(error)
+                // Create PeerConnection
+	            var pc = createPeerConnection(uid);
+                    pc.onconnection = function()
                     {
-                      if(error)
-                        console.error(error);
-                    });
+                      var channel = pc.createDataChannel('chat')
 
-                    pc.setLocalDescription(offer);
-                  },
-                  function(code)
+                      initDataChannel(pc, channel)
+                    }
+
+                // Send offer to new PeerConnection
+                pc.createOffer(function(offer)
+                {
+                  console.log("createOffer: "+uid+", "+offer.sdp);
+
+                  socket.send(JSON.stringify(["offer", uid, offer.sdp]),
+                  function(error)
                   {
-                    console.error("Failure callback: " + code);
+                    if(error)
+                      console.error(error);
                   });
-	            })
+
+                  pc.setLocalDescription(offer);
+                },
+                function(code)
+                {
+                  console.error("Failure callback: " + code);
+                });
 	          }
 	        break
 
@@ -183,14 +180,11 @@ window.addEventListener('load', function()
 	        case 'peer.create':
               var uid = uids
 
-              navigator.mozGetUserMedia({video:true,fake:true}, function (vs)
+              var pc = createPeerConnection(uid);
+              pc.ondatachannel = function(event)
               {
-                var pc = createPeerConnection(uid);
-                pc.ondatachannel = function(event)
-                {
-                  initDataChannel(pc, event.channel)
-                }
-              })
+                initDataChannel(pc, event.channel)
+              }
 	        break
 
 	        case 'peer.remove':

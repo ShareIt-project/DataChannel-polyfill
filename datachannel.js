@@ -20,7 +20,7 @@ function DCPF_install(ws_url)
   {
       var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]})
 
-      try{pc.createDataChannel('DCPF_install__checkSupport')}
+      try{pc.createDataChannel('DCPF_install__checkSupport', {})}
       catch(e)
       {
           return
@@ -121,7 +121,8 @@ function DCPF_install(ws_url)
   }
 
   // Public function to initiate the creation of a new DataChannel
-  RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
+//  RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
+  RTCPeerConnection.createDataChannel = function(label, dataChannelDict)
   {
     if(!this._peerId)
     {
@@ -231,10 +232,20 @@ function DCPF_install(ws_url)
     return result[0].substring(2)
   }
 
+//  // Overwrite setters to catch the session IDs
+//  var setLocalDescription  = RTCPeerConnection.prototype.setLocalDescription
+//  var setRemoteDescription = RTCPeerConnection.prototype.setRemoteDescription
+//  var closeRTC = RTCPeerConnection.prototype.close;
+//
   // Overwrite setters to catch the session IDs
-  var setLocalDescription  = RTCPeerConnection.prototype.setLocalDescription
-  var setRemoteDescription = RTCPeerConnection.prototype.setRemoteDescription
-  var closeRTC = RTCPeerConnection.prototype.close;
+  var setLocalDescription  = RTCPeerConnection.setLocalDescription
+  var setRemoteDescription = RTCPeerConnection.setRemoteDescription
+  var closeRTC = RTCPeerConnection.close;
+
+  console.log(RTCPeerConnection)
+  console.log(setLocalDescription)
+  console.log(setRemoteDescription)
+  console.log(closeRTC)
 
   RTCPeerConnection.prototype.close = function()
   {
@@ -248,12 +259,30 @@ function DCPF_install(ws_url)
   {
     setId(this, getId(description))
 
+    var self = this
+
+    // Firefox hack
+    if(this.connectDataConnection)
+      setTimeout(function()
+      {
+        self.connectDataConnection(5000, 5001);
+      }, 2000);
+
     setLocalDescription.call(this, description, successCallback, failureCallback)
   }
 
   RTCPeerConnection.prototype.setRemoteDescription = function(description, successCallback, failureCallback)
   {
     setPeerId(this, getId(description))
+
+    var self = this
+
+    // Firefox hack
+    if(this.connectDataConnection)
+      setTimeout(function()
+      {
+        self.connectDataConnection(5001, 5000);
+      }, 2000);
 
     setRemoteDescription.call(this, description, successCallback, failureCallback)
   }
