@@ -54,9 +54,9 @@ function DCPF_install(ws_url)
   // defined ID and wait for new 'create' messages to create new DataChannels
   function setId(pc, id)
   {
-    try {
-      pc._signaling.close();
-    } catch (e) { };
+    if(pc._signaling)
+       pc._signaling.close();
+
     pc._signaling = new WebSocket(ws_url)
     pc._signaling.onopen = function()
     {
@@ -152,9 +152,8 @@ function DCPF_install(ws_url)
               // Both peers support native DataChannels
               case 'create.native':
                 // Close the ad-hoc signaling channel
-                try {
-                  self._signaling.close();
-                } catch (e) { };
+                if(self._signaling)
+                   self._signaling.close();
 
                 // Make native DataChannels to be created by default
                 self.prototype.createDataChannel = createDataChannel
@@ -236,11 +235,12 @@ function DCPF_install(ws_url)
   var setRemoteDescription = RTCPeerConnection.prototype.setRemoteDescription
   var closeRTC = RTCPeerConnection.prototype.close;
 
-  RTCPeerConnection.prototype.close = function() {
+  RTCPeerConnection.prototype.close = function()
+  {
+    if(this._signaling)
+       this._signaling.close();
+
     closeRTC.call(this);
-    try {
-      this._signaling.close();
-    } catch (e) { };
   };
     
   RTCPeerConnection.prototype.setLocalDescription = function(description, successCallback, failureCallback)
