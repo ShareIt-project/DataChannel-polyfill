@@ -58,8 +58,6 @@ function DCPF_install(ws_url)
     this._udt = new WebSocket(ws_url)
     this._udt.onclose = function()
     {
-      self.readyState = "closed"
-
 //      if(error && self.onerror)
 //      {
 //        self.onerror(error)
@@ -75,26 +73,8 @@ function DCPF_install(ws_url)
          self.onerror(error)
     }
 
-    this.close = function()
-    {
-      if(this.readyState == "closing"
-      || this.readyState == "closed")
-        return
-
-      this.readyState = "closing"
-
-      this._udt.close()
-    }
-
-    this.send  = function(data, onerror)
-    {
-      if(this.readyState == "connecting"
-      || this.readyState == "closing"
-      || this.readyState == "closed")
-        throw INVALID_STATE;
-
-      this._udt.send(data, onerror)
-    }
+    this.close = function(){this._udt.close()}
+    this.send  = function(data, onerror){this._udt.send(data, onerror)}
 
     // binaryType
     this.__defineGetter__("binaryType", function()
@@ -119,14 +99,24 @@ function DCPF_install(ws_url)
       return label;
     });
 
+    // readyState
+    this.__defineGetter__("readyState", function()
+    {
+      switch(self._udt.readyState)
+      {
+        case 0: return "connecting"
+        case 1: return "open"
+        case 2: return "closing"
+        case 3: return "closed"
+      }
+    });
+
     // reliable
     var reliable = (configuration.reliable != undefined) ? configuration.reliable : true
     this.__defineGetter__("reliable", function()
     {
       return reliable;
     });
-
-    this.readyState = "connecting"
   }
 
   // Create a signalling channel with a WebSocket on the proxy server with the
@@ -183,6 +173,7 @@ function DCPF_install(ws_url)
     // Back-ward compatibility
     if(this.readyState)
       this.signalingState = this.readyState
+    // Back-ward compatibility
 
     if(this.signalingState == "closed")
       throw INVALID_STATE;
@@ -223,6 +214,7 @@ function DCPF_install(ws_url)
                 // Back-ward compatibility
                 if(self.readyState)
                   self.signalingState = self.readyState
+                // Back-ward compatibility
 
                 // PeerConnection is closed, do nothing
                 if(self.signalingState == "closed")
@@ -236,8 +228,6 @@ function DCPF_install(ws_url)
                 }
 
                 // Set channel as open
-                channel.readyState = "open"
-
                 if(channel.onopen)
                   channel.onopen()
             }
@@ -257,6 +247,7 @@ function DCPF_install(ws_url)
     // Back-ward compatibility
     if(pc.readyState)
       pc.signalingState = pc.readyState
+    // Back-ward compatibility
 
     if(pc.signalingState == "closed")
       return;
@@ -272,8 +263,6 @@ function DCPF_install(ws_url)
             }
 
             // Set channel as open
-            channel.readyState = "open"
-
             channel.send(JSON.stringify(["ready", socketId]))
 
             var evt = document.createEvent('Event')
