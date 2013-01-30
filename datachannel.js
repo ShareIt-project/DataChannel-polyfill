@@ -74,7 +74,7 @@ function DCPF_install(ws_url)
     }
 
     this.close = function(){this._udt.close()}
-    this.send  = function(data, onerror){this._udt.send(data, onerror)}
+    this.send  = function(data){this._udt.send(data)}
 
     // binaryType
     this.__defineGetter__("binaryType", function()
