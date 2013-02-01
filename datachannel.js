@@ -1,3 +1,21 @@
+//     DataChannel polyfill Web browser polyfill that implements the WebRTC 
+//     DataChannel API over a websocket. It implements the full latest DataChannel 
+//     API specification defined at 2012-10-21.
+//     Copyright (C) 2013  Jesús Leganés Combarro
+
+//     This program is free software: you can redistribute it and/or modify
+//     it under the terms of the GNU Affero General Public License as
+//     published by the Free Software Foundation, either version 3 of the
+//     License, or (at your option) any later version.
+
+//     This program is distributed in the hope that it will be useful,
+//     but WITHOUT ANY WARRANTY; without even the implied warranty of
+//     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//     GNU Affero General Public License for more details.
+
+//     You should have received a copy of the GNU Affero General Public License
+//     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 function DCPF_install(ws_url)
 {
   // Fallbacks for vendor-specific variables until the spec is finalized.
@@ -33,22 +51,73 @@ function DCPF_install(ws_url)
   var createDataChannel = checkSupport()
 
   // DataChannel polyfill using WebSockets as 'underlying data transport'
-  function RTCDataChannel()
+  function RTCDataChannel(configuration)
   {
     var self = this
 
     // Use a WebSocket as 'underlying data transport' to create the DataChannel
     this._udt = new WebSocket(ws_url)
+    this._udt.onclose = function()
+    {
+//      if(error && self.onerror)
+//      {
+//        self.onerror(error)
+//        return
+//      }
+
+      if(self.onclose)
+         self.onclose()
+    }
     this._udt.onerror = function(error)
     {
-        if(self.onerror)
-            self.onerror(error)
+      if(self.onerror)
+         self.onerror(error)
     }
 
     this.close = function(){this._udt.close()}
-    this.send  = function(data, onerror){this._udt.send(data, onerror)}
+    this.send  = function(data){this._udt.send(data)}
 
-    this.readyState = "connecting"
+    // binaryType
+    this.__defineGetter__("binaryType", function()
+    {
+      return self._udt.binaryType;
+    });
+    this.__defineSetter__("binaryType", function(binaryType)
+    {
+      self._udt.binaryType = binaryType;
+    });
+
+    // bufferedAmount
+    this.__defineGetter__("bufferedAmount", function()
+    {
+      return self._udt.bufferedAmount;
+    });
+
+    // label
+    var label = configuration.label
+    this.__defineGetter__("label", function()
+    {
+      return label;
+    });
+
+    // readyState
+    this.__defineGetter__("readyState", function()
+    {
+      switch(self._udt.readyState)
+      {
+        case 0: return "connecting"
+        case 1: return "open"
+        case 2: return "closing"
+        case 3: return "closed"
+      }
+    });
+
+    // reliable
+    var reliable = (configuration.reliable != undefined) ? configuration.reliable : true
+    this.__defineGetter__("reliable", function()
+    {
+      return reliable;
+    });
   }
 
   // Create a signalling channel with a WebSocket on the proxy server with the
@@ -92,33 +161,6 @@ function DCPF_install(ws_url)
     pc._peerId = "pc."+peerId
   }
 
-  // Private DataChannel factory function
-  function createPolyfill(pc, configuration)
-  {
-    var channel = new RTCDataChannel()
-        channel.label = configuration.label
-        channel.reliable = true
-
-    if(configuration.reliable != undefined)
-      channel.reliable = configuration.reliable
-
-    channel._udt.onclose = function()
-    {
-      if(pc.readyState == "closed")
-        return;
-
-      if(channel.readyState == "closing"
-      || channel.readyState == "closed")
-        return;
-
-      channel.readyState = "closed"
-
-      if(channel.onclose)
-        channel.onclose()
-    }
-
-    return channel
-  }
 
   // Public function to initiate the creation of a new DataChannel
 //  RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
@@ -130,8 +172,13 @@ function DCPF_install(ws_url)
       return
     }
 
-    if(this.readyState == "closed")
-      throw INVALID_STATE_ERR;
+    // Back-ward compatibility
+    if(this.readyState)
+      this.signalingState = this.readyState
+    // Back-ward compatibility
+
+    if(this.signalingState == "closed")
+      throw INVALID_STATE;
 
     if(!label)
         throw "'label' is not defined"
@@ -139,11 +186,11 @@ function DCPF_install(ws_url)
 
     var configuration = {label: label}
     if(dataChannelDict.reliable != undefined)
-        configuration['reliable'] = dataChannelDict.reliable;
+        configuration.reliable = dataChannelDict.reliable;
 
     var self = this
 
-    var channel = createPolyfill(this, configuration)
+    var channel = new RTCDataChannel(configuration)
         channel._udt.onopen = function()
         {
           // Wait until the other end of the channel is ready
@@ -166,8 +213,13 @@ function DCPF_install(ws_url)
 
               // Connection through backend server is ready
               case 'ready':
+                // Back-ward compatibility
+                if(self.readyState)
+                  self.signalingState = self.readyState
+                // Back-ward compatibility
+
                 // PeerConnection is closed, do nothing
-                if(self.readyState == "closed")
+                if(self.signalingState == "closed")
                   return;
 
                 // Set onmessage event to bypass messages to user defined function
@@ -178,8 +230,6 @@ function DCPF_install(ws_url)
                 }
 
                 // Set channel as open
-                channel.readyState = "open"
-
                 if(channel.onopen)
                   channel.onopen()
             }
@@ -196,10 +246,15 @@ function DCPF_install(ws_url)
   // Private function to 'catch' the 'ondatachannel' event
   function ondatachannel(pc, socketId, configuration)
   {
-    if(pc.readyState == "closed")
+    // Back-ward compatibility
+    if(pc.readyState)
+      pc.signalingState = pc.readyState
+    // Back-ward compatibility
+
+    if(pc.signalingState == "closed")
       return;
 
-    var channel = createPolyfill(pc, configuration)
+    var channel = new RTCDataChannel(configuration)
         channel._udt.onopen = function()
         {
             // Set onmessage event to bypass messages to user defined function
@@ -210,8 +265,6 @@ function DCPF_install(ws_url)
             }
 
             // Set channel as open
-            channel.readyState = "open"
-
             channel.send(JSON.stringify(["ready", socketId]))
 
             var evt = document.createEvent('Event')
