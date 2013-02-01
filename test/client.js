@@ -44,12 +44,7 @@ function initChat()
       {
         var channel = peerConnections[peerConnection]._datachannels['chat']
         if(channel)
-          channel.send(JSON.stringify({"messages": input.value, "color": color}),
-          function(error)
-          {
-            if(error)
-              console.error(error);
-          });
+          channel.send(JSON.stringify({"messages": input.value, "color": color}));
       }
 
       addToChat(input.value);
@@ -65,7 +60,8 @@ function createPeerConnection(uid)
 {
     console.log('createPeerConnection '+uid);
 
-    var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]});
+    var pc = new RTCPeerConnection({iceServers: [{url: SERVER}]},
+                                   {optional: [{RtpDataChannels: true}]});
 
   peerConnections[uid] = pc
 
@@ -129,12 +125,7 @@ window.addEventListener('load', function()
 	            {
 	                console.log("createOffer: "+uid+", "+offer.sdp);
 
-	                socket.send(JSON.stringify(["offer", uid, offer.sdp]),
-	                function(error)
-	                {
-	                  if(error)
-	                    console.error(error);
-	                });
+	                socket.send(JSON.stringify(["offer", uid, offer.sdp]));
 
 	                pc.setLocalDescription(offer);
 	            },
@@ -157,12 +148,7 @@ window.addEventListener('load', function()
               {
                   console.log("createAnswer: "+uid+", "+answer.sdp);
 
-	              socket.send(JSON.stringify(["answer", uid, answer.sdp]),
-                  function(error)
-                  {
-                    if(error)
-                      console.error(error);
-                  });
+	              socket.send(JSON.stringify(["answer", uid, answer.sdp]));
 
                   pc.setLocalDescription(answer);
               });
@@ -182,7 +168,9 @@ window.addEventListener('load', function()
 	          var pc = createPeerConnection(uid);
 	              pc.ondatachannel = function(event)
 	              {
-	                initDataChannel(pc, event.channel)
+	                var channel = event.channel
+
+	                initDataChannel(pc, channel)
 	              }
 	        break
 
