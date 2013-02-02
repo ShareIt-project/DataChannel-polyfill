@@ -66,7 +66,6 @@ function createPeerConnection(uid, socket)
         {
           if(event.candidate)
             socket.send(JSON.stringify(["peer.candidate", uid, event.candidate]));
-          console.log(event.candidate)
         }
 
   peerConnections[uid] = pc
@@ -171,7 +170,6 @@ window.addEventListener('load', function()
 	        case 'peer.candidate':
               var uid = uids
               var candidate = new RTCIceCandidate(sdp)
-              console.log(candidate)
 
               var pc = peerConnections[uid];
                   pc.addIceCandidate(candidate);
