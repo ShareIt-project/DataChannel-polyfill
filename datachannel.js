@@ -243,12 +243,12 @@ function DCPF_install(ws_url)
           pc.createDataChannel = createDataChannel
 
           // Start native DataChannel connection
-          var nativeChannel = pc.createDataChannel(channel._configuration.label,
-                                                   {reliable: channel._configuration.reliable})
+          channel._udt = pc.createDataChannel(channel._configuration.label,
+                                              {reliable: channel._configuration.reliable})
 
-              nativeChannel.onclose = channel._udt.onclose
-              nativeChannel.onerror = channel._udt.onerror
-              nativeChannel.onopen = channel._udt.onopen
+          channel._udt.onclose = channel._udt.onclose
+          channel._udt.onerror = channel._udt.onerror
+          channel._udt.onopen  = channel._udt.onopen
           break
 
         // Connection through backend server is ready
