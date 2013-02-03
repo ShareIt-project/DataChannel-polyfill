@@ -1,4 +1,4 @@
-//     DataChannel polyfill Web browser polyfill that implements the WebRTC 
+//     DataChannel polyfill Web browser polyfill that implements the WebRTC
 //     DataChannel API over a websocket. It implements the full latest DataChannel 
 //     API specification defined at 2012-10-21.
 //     Copyright (C) 2013  Jesús Leganés Combarro
@@ -35,15 +35,21 @@ function DCPF_install(ws_url)
   // Check if browser has support for native WebRTC DataChannel
   function checkSupport()
   {
-      var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]})
+      var pc = new RTCPeerConnection({iceServers: [{url: SERVER}]},
+                                     {optional: [{RtpDataChannels: true}]})
 
-      try{pc.createDataChannel('DCPF_install__checkSupport')}
+      try
+      {
+          var channel = pc.createDataChannel('DCPF_install__checkSupport',
+                                             {reliable: false})
+              channel.close();
+      }
       catch(e)
       {
           return
       }
 
-      return RTCPeerConnection.prototype.createDataChannel
+      return pc.createDataChannel
   }
 
   // Check for native createDataChannel support to enable the polyfill
@@ -54,27 +60,19 @@ function DCPF_install(ws_url)
   {
     var self = this
 
-    // Use a WebSocket as 'underlying data transport' to create the DataChannel
-    this._udt = new WebSocket(ws_url)
-    this._udt.onclose = function()
-    {
-//      if(error && self.onerror)
-//      {
-//        self.onerror(error)
-//        return
-//      }
+    this._configuration = configuration
 
-      if(self.onclose)
-         self.onclose()
-    }
-    this._udt.onerror = function(error)
-    {
-      if(self.onerror)
-         self.onerror(error)
-    }
 
-    this.close = function(){this._udt.close()}
-    this.send  = function(data){this._udt.send(data)}
+    this.close = function()
+    {
+      if(this._udt)
+         this._udt.close()
+    }
+    this.send  = function(data)
+    {
+      if(this._udt)
+         this._udt.send(data)
+    }
 
     // binaryType
     this.__defineGetter__("binaryType", function()
@@ -89,6 +87,9 @@ function DCPF_install(ws_url)
     // bufferedAmount
     this.__defineGetter__("bufferedAmount", function()
     {
+      if(!self._udt)
+        return 0
+
       return self._udt.bufferedAmount;
     });
 
@@ -102,6 +103,9 @@ function DCPF_install(ws_url)
     // readyState
     this.__defineGetter__("readyState", function()
     {
+      if(!self._udt)
+        return "connecting"
+
       switch(self._udt.readyState)
       {
         case 0: return "connecting"
@@ -119,57 +123,45 @@ function DCPF_install(ws_url)
     });
   }
 
-  // Create a signalling channel with a WebSocket on the proxy server with the
-  // defined ID and wait for new 'create' messages to create new DataChannels
-  function setId(pc, id)
+
+  function createUDT(pc, channel, onopen)
   {
-    if(pc._signaling)
-       pc._signaling.close();
+    pc._channels = pc._channels || {}
+    pc._channels[channel.label] = channel
 
-    pc._signaling = new WebSocket(ws_url)
-    pc._signaling.onopen = function()
+    if(!pc._peerId)
+      return
+
+    console.info("Creating UDT")
+
+    // Use a WebSocket as 'underlying data transport' to create the DataChannel
+    channel._udt = new WebSocket(ws_url)
+    channel._udt.onclose = function()
     {
-      this.onmessage = function(message)
-      {
-        var args = JSON.parse(message.data)
+//      if(error && channel.onerror)
+//      {
+//        channel.onerror(error)
+//        return
+//      }
 
-        switch(args[0])
-        {
-          case 'create':
-            ondatachannel(pc, args[1], args[2])
-            break
-
-          // Both peers support native DataChannels
-          case 'create.native':
-            // Make native DataChannels to be created by default
-            pc.prototype.createDataChannel = createDataChannel
-        }
-      }
-
-      this.send(JSON.stringify(['setId', "pc."+id, Boolean(createDataChannel)]))
+      if(channel.onclose)
+         channel.onclose()
     }
-    pc._signaling.onerror = function(error)
+    channel._udt.onerror = function(error)
     {
-      console.error(error)
+      if(channel.onerror)
+         channel.onerror(error)
     }
-  }
-
-  // Set the PeerConnection peer ID
-  function setPeerId(pc, peerId)
-  {
-    pc._peerId = "pc."+peerId
+    channel._udt.onopen = function()
+    {
+      onopen(channel, pc)
+    }
   }
 
 
   // Public function to initiate the creation of a new DataChannel
   RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
   {
-    if(!this._peerId)
-    {
-      console.warn("peerId is not defined")
-      return
-    }
-
     // Back-ward compatibility
     if(this.readyState)
       this.signalingState = this.readyState
@@ -189,57 +181,12 @@ function DCPF_install(ws_url)
     var self = this
 
     var channel = new RTCDataChannel(configuration)
-        channel._udt.onopen = function()
-        {
-          // Wait until the other end of the channel is ready
-          channel._udt.onmessage = function(message)
-          {
-            switch(message.data)
-            {
-              // Both peers support native DataChannels
-              case 'create.native':
-                // Close the ad-hoc signaling channel
-                if(self._signaling)
-                   self._signaling.close();
 
-                // Make native DataChannels to be created by default
-                self.prototype.createDataChannel = createDataChannel
-
-                // Start native DataChannel connection
-                self.createDataChannel(label, dataChannelDict)
-                break
-
-              // Connection through backend server is ready
-              case 'ready':
-                // Back-ward compatibility
-                if(self.readyState)
-                  self.signalingState = self.readyState
-                // Back-ward compatibility
-
-                // PeerConnection is closed, do nothing
-                if(self.signalingState == "closed")
-                  return;
-
-                // Set onmessage event to bypass messages to user defined function
-                channel._udt.onmessage = function(message)
-                {
-                  if(channel.onmessage)
-                    channel.onmessage(message)
-                }
-
-                // Set channel as open
-                if(channel.onopen)
-                  channel.onopen()
-            }
-          }
-
-          // Query to the other peer to create a new DataChannel with us
-          channel.send(JSON.stringify(["create", self._peerId, configuration,
-                                       Boolean(createDataChannel)]))
-        }
+    createUDT(this, channel, onopen)
 
     return channel
   }
+
 
   // Private function to 'catch' the 'ondatachannel' event
   function ondatachannel(pc, socketId, configuration)
@@ -253,26 +200,90 @@ function DCPF_install(ws_url)
       return;
 
     var channel = new RTCDataChannel(configuration)
-        channel._udt.onopen = function()
-        {
-            // Set onmessage event to bypass messages to user defined function
-            channel._udt.onmessage = function(message)
-            {
-              if(channel.onmessage)
-                channel.onmessage(message)
-            }
 
-            // Set channel as open
-            channel.send(JSON.stringify(["ready", socketId]))
+    createUDT(pc, channel, function(channel)
+    {
+      // Set onmessage event to bypass messages to user defined function
+      channel._udt.onmessage = function(message)
+      {
+        if(channel.onmessage)
+           channel.onmessage(message)
+      }
 
-            var evt = document.createEvent('Event')
-                evt.initEvent('datachannel', true, true)
-                evt.channel = channel
+      // Set channel as open
+      channel.send(JSON.stringify(["ready", socketId]))
 
-            if(pc.ondatachannel)
-                pc.ondatachannel(evt);
-        }
+      var evt = document.createEvent('Event')
+          evt.initEvent('datachannel', true, true)
+          evt.channel = channel
+
+      if(pc.ondatachannel)
+         pc.ondatachannel(evt);
+    })
   }
+
+  function onopen(channel, pc)
+  {
+    // Wait until the other end of the channel is ready
+    channel._udt.onmessage = function(message)
+    {
+      var args = JSON.parse(message.data);
+
+      var eventName = args[0]
+
+      switch(eventName)
+      {
+        // Both peers support native DataChannels
+        case 'create.native':
+          // Close the ad-hoc signaling channel
+          if(pc._signaling)
+             pc._signaling.close();
+
+          // Make native DataChannels to be created by default
+          pc.createDataChannel = createDataChannel
+
+          // Start native DataChannel connection
+          var nativeChannel = pc.createDataChannel(channel._configuration.label,
+                                                   {reliable: channel._configuration.reliable})
+
+              nativeChannel.onclose = channel._udt.onclose
+              nativeChannel.onerror = channel._udt.onerror
+              nativeChannel.onopen = channel._udt.onopen
+          break
+
+        // Connection through backend server is ready
+        case 'ready':
+          // Back-ward compatibility
+          if(pc.readyState)
+             pc.signalingState = pc.readyState
+          // Back-ward compatibility
+
+          // PeerConnection is closed, do nothing
+          if(self.signalingState == "closed")
+            return;
+
+          // Set onmessage event to bypass messages to user defined function
+          channel._udt.onmessage = function(message)
+          {
+            if(channel.onmessage)
+               channel.onmessage(message)
+          }
+
+          // Set channel as open
+          if(channel.onopen)
+             channel.onopen()
+          break
+
+          default:
+            console.error("Unknown event '"+eventName+"'")
+      }
+    }
+
+    // Query to the other peer to create a new DataChannel with us
+    channel.send(JSON.stringify(["create", pc._peerId, channel._configuration,
+                                 Boolean(createDataChannel)]))
+  }
+
 
   // Get the SDP session ID from a RTCSessionDescription object
   function getId(description)
@@ -295,17 +306,64 @@ function DCPF_install(ws_url)
 
     closeRTC.call(this);
   };
-    
-  RTCPeerConnection.prototype.setLocalDescription = function(description, successCallback, failureCallback)
+
+  RTCPeerConnection.prototype.setLocalDescription = function(description,
+                                                             successCallback,
+                                                             failureCallback)
   {
-    setId(this, getId(description))
+    var self = this
+
+    // Create a signalling channel with a WebSocket on the proxy server with the
+    // defined ID and wait for new 'create' messages to create new DataChannels
+    if(this._signaling)
+       this._signaling.close();
+
+    this._signaling = new WebSocket(ws_url)
+    this._signaling.onopen = function()
+    {
+      this.onmessage = function(message)
+      {
+        var args = JSON.parse(message.data)
+
+        switch(args[0])
+        {
+          case 'create':
+            ondatachannel(self, args[1], args[2])
+            break
+
+          // Both peers support native DataChannels
+          case 'create.native':
+            // Make native DataChannels to be created by default
+            self.createDataChannel = createDataChannel
+        }
+      }
+
+      this.send(JSON.stringify(['setId', "pc."+getId(description),
+                                Boolean(createDataChannel)]))
+    }
+    this._signaling.onerror = function(error)
+    {
+      console.error(error)
+    }
 
     setLocalDescription.call(this, description, successCallback, failureCallback)
   }
 
-  RTCPeerConnection.prototype.setRemoteDescription = function(description, successCallback, failureCallback)
+  RTCPeerConnection.prototype.setRemoteDescription = function(description,
+                                                              successCallback,
+                                                              failureCallback)
   {
-    setPeerId(this, getId(description))
+    // Set the PeerConnection peer ID
+    this._peerId = "pc."+getId(description)
+
+    // Initialize pending channels
+    for(var label in this._channels)
+    {
+      var channel = this._channels[label]
+
+      if(channel._udt == undefined)
+        createUDT(this, channel, onopen)
+    }
 
     setRemoteDescription.call(this, description, successCallback, failureCallback)
   }

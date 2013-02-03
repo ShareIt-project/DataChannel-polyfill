@@ -56,12 +56,17 @@ function initChat()
 
 // Create PeerConnection
 
-function createPeerConnection(uid)
+function createPeerConnection(uid, socket)
 {
     console.log('createPeerConnection '+uid);
 
     var pc = new RTCPeerConnection({iceServers: [{url: SERVER}]},
                                    {optional: [{RtpDataChannels: true}]});
+        pc.onicecandidate = function(event)
+        {
+          if(event.candidate)
+            socket.send(JSON.stringify(["peer.candidate", uid, event.candidate]));
+        }
 
   peerConnections[uid] = pc
 
@@ -84,7 +89,7 @@ function initDataChannel(pc, channel)
     delete pc._datachannels[channel.label]
   }
 
-  pc._datachannels = {}
+  pc._datachannels = pc._datachannels || {}
   pc._datachannels[channel.label] = channel
 };
 
@@ -112,13 +117,13 @@ window.addEventListener('load', function()
 	            var uid = uids[i]
 
 	            // Create PeerConnection
-	            var pc = createPeerConnection(uid);
-					pc.onopen = function()
-					{
-                      var channel = pc.createDataChannel('chat')
+	            var pc = createPeerConnection(uid, socket);
 
-					  initDataChannel(pc, channel)
-					}
+	            var channel = pc.createDataChannel('chat', {reliable: false})
+	                channel.onopen = function()
+	                {
+	                  initDataChannel(pc, channel)
+	                }
 
 	            // Send offer to new PeerConnection
 	            pc.createOffer(function(offer)
@@ -162,10 +167,18 @@ window.addEventListener('load', function()
                                                                  type: 'answer'}));
             break
 
+	        case 'peer.candidate':
+              var uid = uids
+              var candidate = new RTCIceCandidate(sdp)
+
+              var pc = peerConnections[uid];
+                  pc.addIceCandidate(candidate);
+	        break
+
 	        case 'peer.create':
               var uid = uids
 
-	          var pc = createPeerConnection(uid);
+	          var pc = createPeerConnection(uid, socket);
 	              pc.ondatachannel = function(event)
 	              {
 	                var channel = event.channel
