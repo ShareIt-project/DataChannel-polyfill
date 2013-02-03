@@ -99,7 +99,7 @@ wss.on('connection', function(socket)
                     soc.onmessage = onmessage_proxy
 
                     // Send 'ready' signal to the first peer and dettach it
-                    soc.send('ready')
+                    soc.send(JSON.stringify(['ready']))
 
                     delete soc.id
                     delete wss.sockets[socketId]
