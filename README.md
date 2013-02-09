@@ -2,7 +2,7 @@ DataChannel-polyfill
 ====================
 
 Web browser polyfill that implement the WebRTC DataChannel API over a websocket.
-It implement the full latest DataChannel API specification defined at 2012-10-21.
+It implement the full latest DataChannel API specification defined at 2013-01-16.
 
 Credits
 -------
