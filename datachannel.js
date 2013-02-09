@@ -194,7 +194,11 @@ function DCPF_install(ws_url)
           // Wait until the other end of the channel is ready
           channel._udt.onmessage = function(message)
           {
-            switch(message.data)
+            var args = JSON.parse(message.data);
+
+            var eventName = args[0]
+
+            switch(eventName)
             {
               // Both peers support native DataChannels
               case 'create.native':
@@ -230,6 +234,10 @@ function DCPF_install(ws_url)
                 // Set channel as open
                 if(channel.onopen)
                   channel.onopen()
+                break
+
+              default:
+                console.error("Unknown event '"+eventName+"'")
             }
           }
 
