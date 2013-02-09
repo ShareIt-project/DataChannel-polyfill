@@ -72,6 +72,14 @@ function DCPF_install(ws_url)
 
     // Use a WebSocket as 'underlying data transport' to create the DataChannel
     this._udt = new WebSocket(ws_url)
+    this._udt.addEventListener('close', function(event)
+    {
+      self.dispatchEvent(event)
+    })
+    this._udt.addEventListener('error', function(event)
+    {
+      self.dispatchEvent(event)
+    })
 
     this.close = function(){this._udt.close()}
     this.send  = function(data){this._udt.send(data)}
@@ -119,43 +127,39 @@ function DCPF_install(ws_url)
     });
   }
 
-  // Basic EventTarget functionality delegating on the Underlying Data Transport
+  // Basic EventTarget functionality from on EventTarget.js
+  // https://raw.github.com/piranna/EventTarget.js
   RTCDataChannel.prototype = new function()
   {
-    var onopen = [];
+    var listeners = {};
 
     // EventTarget methods
     this.addEventListener = function(type, handler, bubble)
     {
-      if(type == 'open')
-        onopen.push(handler)
-      else
-        this._udt.addEventListener(type, handler, bubble)
+      if(listeners[type] === undefined)
+         listeners[type] = [];
+
+      if(listeners[type].indexOf(handler) === -1)
+         listeners[type].push(handler);
     };
     this.dispatchEvent = function(event)
     {
-      if(type == 'open')
-      {
-        for(var i=0, listener; listener=onopen[i]; i++)
+      var listenerArray = listeners[event.type];
+
+      if(listenerArray !== undefined)
+        for(var i=0, listener; listener=listenerArray[i]; i++)
           listener.call(this, event);
-      }
-      else
-        this._udt.dispatchEvent(event)
     };
     this.removeEventListener = function(type, handler)
     {
-      if(type == 'open')
-      {
-        var index = onopen.indexOf(handler);
-        if(index !== -1)
-          onopen.splice(index, 1);
-      }
-      else
-        this._udt.removeEventListener(type, handler)
+      var index = listeners[type].indexOf(listener);
+
+      if(index !== -1)
+        listeners[type].splice(index, 1);
     };
 
     // EventListeners
-    var types = ['close', 'error', 'message']
+    var types = ['close', 'error', 'message', 'open']
     for(var i=0, type; type=types[i]; i++)
       this.__defineSetter__(type, function(handler)
       {
@@ -269,6 +273,10 @@ function DCPF_install(ws_url)
                   return;
 
                 this.removeEventListener('message', onmessage)
+                this.addEventListener('message', function(event)
+                {
+                  channel.dispatchEvent(event)
+                })
 
                 // Set channel as open
                 var event = document.createEvent('Event')
@@ -307,6 +315,11 @@ function DCPF_install(ws_url)
     var channel = new RTCDataChannel(configuration)
         channel._udt.onopen = function(event)
         {
+          this.addEventListener('message', function(event)
+          {
+            channel.dispatchEvent(event)
+          })
+
           // Set channel as open
           channel.send(JSON.stringify(["ready", socketId]))
 
@@ -340,14 +353,18 @@ function DCPF_install(ws_url)
     closeRTC.call(this);
   };
     
-  RTCPeerConnection.prototype.setLocalDescription = function(description, successCallback, failureCallback)
+  RTCPeerConnection.prototype.setLocalDescription = function(description,
+                                                             successCallback,
+                                                             failureCallback)
   {
     setId(this, getId(description))
 
     setLocalDescription.call(this, description, successCallback, failureCallback)
   }
 
-  RTCPeerConnection.prototype.setRemoteDescription = function(description, successCallback, failureCallback)
+  RTCPeerConnection.prototype.setRemoteDescription = function(description,
+                                                              successCallback,
+                                                              failureCallback)
   {
     setPeerId(this, getId(description))
 
