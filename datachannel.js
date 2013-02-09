@@ -159,7 +159,7 @@ function DCPF_install(ws_url)
     for(var i=0, type; type=types[i]; i++)
       this.__defineSetter__(type, function(handler)
       {
-        this.addEventListener = function(type, handler, false)
+        this.addEventListener(type, handler, false)
       });
   }
 
