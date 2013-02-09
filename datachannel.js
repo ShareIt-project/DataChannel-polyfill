@@ -72,22 +72,6 @@ function DCPF_install(ws_url)
 
     // Use a WebSocket as 'underlying data transport' to create the DataChannel
     this._udt = new WebSocket(ws_url)
-    this._udt.onclose = function(event)
-    {
-//      if(error && self.onerror)
-//      {
-//        self.onerror(error)
-//        return
-//      }
-
-      if(self.onclose)
-         self.onclose(event)
-    }
-    this._udt.onerror = function(event)
-    {
-      if(self.onerror)
-         self.onerror(event)
-    }
 
     this.close = function(){this._udt.close()}
     this.send  = function(data){this._udt.send(data)}
@@ -133,6 +117,50 @@ function DCPF_install(ws_url)
     {
       return reliable;
     });
+  }
+
+  // Basic EventTarget functionality delegating on the Underlying Data Transport
+  RTCDataChannel.prototype = new function()
+  {
+    var onopen = [];
+
+    // EventTarget methods
+    this.addEventListener = function(type, handler, bubble)
+    {
+      if(type == 'open')
+        onopen.push(handler)
+      else
+        this._udt.addEventListener(type, handler, bubble)
+    };
+    this.dispatchEvent = function(event)
+    {
+      if(type == 'open')
+      {
+        for(var i=0, listener; listener=onopen[i]; i++)
+          listener.call(this, event);
+      }
+      else
+        this._udt.dispatchEvent(event)
+    };
+    this.removeEventListener = function(type, handler)
+    {
+      if(type == 'open')
+      {
+        var index = onopen.indexOf(handler);
+        if(index !== -1)
+          onopen.splice(index, 1);
+      }
+      else
+        this._udt.removeEventListener(type, handler)
+    };
+
+    // EventListeners
+    var types = ['close', 'error', 'message']
+    for(var i=0, type; type=types[i]; i++)
+      this.__defineSetter__(type, function(handler)
+      {
+        this.addEventListener = function(type, handler, false)
+      });
   }
 
   // Create a signalling channel with a WebSocket on the proxy server with the
@@ -208,7 +236,7 @@ function DCPF_install(ws_url)
         channel._udt.onopen = function(event)
         {
           // Wait until the other end of the channel is ready
-          channel._udt.onmessage = function(event)
+          function onmessage(event)
           {
             var args = JSON.parse(event.data);
 
@@ -240,22 +268,22 @@ function DCPF_install(ws_url)
                 if(self.signalingState == "closed")
                   return;
 
-                // Set onmessage event to bypass messages to user defined function
-                channel._udt.onmessage = function(message)
-                {
-                  if(channel.onmessage)
-                     channel.onmessage(message)
-                }
+                this.removeEventListener('message', onmessage)
 
                 // Set channel as open
-                if(channel.onopen)
-                  channel.onopen(event)
+                var event = document.createEvent('Event')
+                    event.initEvent('open', true, true)
+                    event.channel = channel
+
+                channel.dispatchEvent(event)
                 break
 
               default:
                 console.error("Unknown event '"+eventName+"'")
             }
           }
+
+          channel._udt.addEventListener('message', onmessage)
 
           // Query to the other peer to create a new DataChannel with us
           channel.send(JSON.stringify(["create", self._peerId, configuration,
@@ -279,13 +307,6 @@ function DCPF_install(ws_url)
     var channel = new RTCDataChannel(configuration)
         channel._udt.onopen = function(event)
         {
-          // Set onmessage event to bypass messages to user defined function
-          channel._udt.onmessage = function(event)
-          {
-            if(channel.onmessage)
-               channel.onmessage(event)
-          }
-
           // Set channel as open
           channel.send(JSON.stringify(["ready", socketId]))
 
@@ -293,8 +314,7 @@ function DCPF_install(ws_url)
               event.initEvent('datachannel', true, true)
               event.channel = channel
 
-          if(pc.ondatachannel)
-             pc.ondatachannel(event);
+          pc.dispatchEvent(event);
         }
   }
 
