@@ -1,21 +1,34 @@
-//     DataChannel polyfill Web browser polyfill that implements the WebRTC 
-//     DataChannel API over a websocket. It implements the full latest DataChannel 
-//     API specification defined at 2012-10-21.
-//     Copyright (C) 2013  Jesús Leganés Combarro
+/**
+ * DataChannel polyfill
+ * 
+ * Web browser polyfill that implements the WebRTC DataChannel API over a
+ * websocket. It implements the full latest DataChannel API specification
+ * defined at 2013-01-16.
+ * 
+ * Copyright (C) 2012-2013 Jesús Leganés Combarro "Piranna" <piranna@gmail.com>
+ * 
+ * This code can be found at https://github.com/piranna/DataChannel-polyfill
+ * 
+ * 
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU Affero General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any
+ * later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
+ * 
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
-//     This program is free software: you can redistribute it and/or modify
-//     it under the terms of the GNU Affero General Public License as
-//     published by the Free Software Foundation, either version 3 of the
-//     License, or (at your option) any later version.
 
-//     This program is distributed in the hope that it will be useful,
-//     but WITHOUT ANY WARRANTY; without even the implied warranty of
-//     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//     GNU Affero General Public License for more details.
-
-//     You should have received a copy of the GNU Affero General Public License
-//     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+/**
+ * Install the polyfill
+ * @param {String} ws_url URL to the backend server
+ */
 function DCPF_install(ws_url)
 {
   // Fallbacks for vendor-specific variables until the spec is finalized.
@@ -29,21 +42,24 @@ function DCPF_install(ws_url)
     return "old browser";
   }
 
-//Holds the STUN server to use for PeerConnections.
+  //Holds the STUN server to use for PeerConnections.
   var SERVER = "stun:stun.l.google.com:19302";
 
   // Check if browser has support for native WebRTC DataChannel
   function checkSupport()
   {
-      var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]})
+    var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]})
 
-      try{pc.createDataChannel('DCPF_install__checkSupport')}
-      catch(e)
-      {
-          return
-      }
+    try
+    {
+      pc.createDataChannel('DCPF_install__checkSupport')
+    }
+    catch(e)
+    {
+      return
+    }
 
-      return RTCPeerConnection.prototype.createDataChannel
+    return RTCPeerConnection.prototype.createDataChannel
   }
 
   // Check for native createDataChannel support to enable the polyfill
@@ -56,7 +72,7 @@ function DCPF_install(ws_url)
 
     // Use a WebSocket as 'underlying data transport' to create the DataChannel
     this._udt = new WebSocket(ws_url)
-    this._udt.onclose = function()
+    this._udt.onclose = function(event)
     {
 //      if(error && self.onerror)
 //      {
@@ -65,12 +81,12 @@ function DCPF_install(ws_url)
 //      }
 
       if(self.onclose)
-         self.onclose()
+         self.onclose(event)
     }
-    this._udt.onerror = function(error)
+    this._udt.onerror = function(event)
     {
       if(self.onerror)
-         self.onerror(error)
+         self.onerror(event)
     }
 
     this.close = function(){this._udt.close()}
@@ -127,11 +143,11 @@ function DCPF_install(ws_url)
        pc._signaling.close();
 
     pc._signaling = new WebSocket(ws_url)
-    pc._signaling.onopen = function()
+    pc._signaling.onopen = function(event)
     {
-      this.onmessage = function(message)
+      this.onmessage = function(event)
       {
-        var args = JSON.parse(message.data)
+        var args = JSON.parse(event.data)
 
         switch(args[0])
         {
@@ -148,9 +164,9 @@ function DCPF_install(ws_url)
 
       this.send(JSON.stringify(['setId', "pc."+id, Boolean(createDataChannel)]))
     }
-    pc._signaling.onerror = function(error)
+    pc._signaling.onerror = function(event)
     {
-      console.error(error)
+      console.error(event)
     }
   }
 
@@ -179,22 +195,22 @@ function DCPF_install(ws_url)
       throw INVALID_STATE;
 
     if(!label)
-        throw "'label' is not defined"
+      throw "'label' is not defined"
     dataChannelDict = dataChannelDict || {}
 
     var configuration = {label: label}
     if(dataChannelDict.reliable != undefined)
-        configuration.reliable = dataChannelDict.reliable;
+      configuration.reliable = dataChannelDict.reliable;
 
     var self = this
 
     var channel = new RTCDataChannel(configuration)
-        channel._udt.onopen = function()
+        channel._udt.onopen = function(event)
         {
           // Wait until the other end of the channel is ready
-          channel._udt.onmessage = function(message)
+          channel._udt.onmessage = function(event)
           {
-            var args = JSON.parse(message.data);
+            var args = JSON.parse(event.data);
 
             var eventName = args[0]
 
@@ -228,12 +244,12 @@ function DCPF_install(ws_url)
                 channel._udt.onmessage = function(message)
                 {
                   if(channel.onmessage)
-                    channel.onmessage(message)
+                     channel.onmessage(message)
                 }
 
                 // Set channel as open
                 if(channel.onopen)
-                  channel.onopen()
+                  channel.onopen(event)
                 break
 
               default:
@@ -261,24 +277,24 @@ function DCPF_install(ws_url)
       return;
 
     var channel = new RTCDataChannel(configuration)
-        channel._udt.onopen = function()
+        channel._udt.onopen = function(event)
         {
-            // Set onmessage event to bypass messages to user defined function
-            channel._udt.onmessage = function(message)
-            {
-              if(channel.onmessage)
-                channel.onmessage(message)
-            }
+          // Set onmessage event to bypass messages to user defined function
+          channel._udt.onmessage = function(event)
+          {
+            if(channel.onmessage)
+               channel.onmessage(event)
+          }
 
-            // Set channel as open
-            channel.send(JSON.stringify(["ready", socketId]))
+          // Set channel as open
+          channel.send(JSON.stringify(["ready", socketId]))
 
-            var evt = document.createEvent('Event')
-                evt.initEvent('datachannel', true, true)
-                evt.channel = channel
+          var event = document.createEvent('Event')
+              event.initEvent('datachannel', true, true)
+              event.channel = channel
 
-            if(pc.ondatachannel)
-                pc.ondatachannel(evt);
+          if(pc.ondatachannel)
+             pc.ondatachannel(event);
         }
   }
 
