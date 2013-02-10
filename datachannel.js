@@ -159,12 +159,22 @@ function DCPF_install(ws_url)
     };
 
     // EventListeners
-    var types = ['close', 'error', 'message', 'open']
-    for(var i=0, type; type=types[i]; i++)
-      this.__defineSetter__(type, function(handler)
-      {
-        this.addEventListener(type, handler, false)
-      });
+    this.__defineSetter__('onclose', function(handler)
+    {
+      this.addEventListener('close', handler, false)
+    });
+    this.__defineSetter__('onerror', function(handler)
+    {
+      this.addEventListener('error', handler, false)
+    });
+    this.__defineSetter__('onmessage', function(handler)
+    {
+      this.addEventListener('message', handler, false)
+    });
+    this.__defineSetter__('onopen', function(handler)
+    {
+      this.addEventListener('open', handler, false)
+    });
   }
 
   // Create a signalling channel with a WebSocket on the proxy server with the
