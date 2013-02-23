@@ -32,7 +32,7 @@
 function DCPF_install(ws_url)
 {
   // Fallbacks for vendor-specific variables until the spec is finalized.
-  var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+  var RTCPeerConnection = RTCPeerConnection || webkitRTCPeerConnection || mozRTCPeerConnection;
 
   // Check if browser has support for WebRTC PeerConnection
   if(RTCPeerConnection == undefined)
@@ -237,7 +237,7 @@ function DCPF_install(ws_url)
       throw INVALID_STATE;
 
     if(!label)
-      throw "'label' is not defined"
+      label = ''
     dataChannelDict = dataChannelDict || {}
 
     var configuration = {label: label}
