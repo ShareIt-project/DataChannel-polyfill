@@ -379,7 +379,7 @@ function DCPF_install(ws_url)
     setRemoteDescription.call(this, description, successCallback, failureCallback)
   }
 
-  if(createDataChannel && !supportReliable)
+  if(createDataChannel && !supportReliable && Reliable)
   {
     var createOffer  = RTCPeerConnection.prototype.createOffer;
     var createAnswer = RTCPeerConnection.prototype.createAnswer;
@@ -420,7 +420,11 @@ function DCPF_install(ws_url)
       return "native";
     }
 
-    console.warn("Native WebRTC DataChannel is not reliable, using polyfill instead");
+    if(Reliable)
+      console.warn("Native WebRTC DataChannel is not reliable, using polyfill instead");
+    else
+      console.error("Native WebRTC DataChannel is not reliable and not included polyfill");
+
     return "native no reliable";
   }
 
