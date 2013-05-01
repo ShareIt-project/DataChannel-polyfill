@@ -32,31 +32,36 @@ function DCPF_install(ws_url)
     return "old browser";
   }
 
-//Holds the STUN server to use for PeerConnections.
+  var createDataChannel;
+  var reliable = false;
+
+  //Holds the STUN server to use for PeerConnections.
   var SERVER = "stun:stun.l.google.com:19302";
 
   // Check if browser has support for native WebRTC DataChannel
-  function checkSupport()
+  var pc = new RTCPeerConnection({iceServers: [{url: SERVER}]},
+                                 {optional: [{RtpDataChannels: true}]})
+
+  try
   {
-      var pc = new RTCPeerConnection({iceServers: [{url: SERVER}]},
-                                     {optional: [{RtpDataChannels: true}]})
+    // Check native
+    pc.createDataChannel('DCPF_install__checkSupport',{reliable:false}).close();
 
-      try
-      {
-          var channel = pc.createDataChannel('DCPF_install__checkSupport',
-                                             {reliable: false})
-              channel.close();
-      }
-      catch(e)
-      {
-          return
-      }
+    // Native support available, store the function
+    createDataChannel = pc.createDataChannel
 
-      return pc.createDataChannel
+    // Check reliable
+    pc.createDataChannel('DCPF_install__checkSupport').close();
+
+    // Native reliable support available
+    reliable = true
+  }
+  catch(e){}
+  finally
+  {
+    pc.close()
   }
 
-  // Check for native createDataChannel support to enable the polyfill
-  var createDataChannel = checkSupport()
 
   // DataChannel polyfill using WebSockets as 'underlying data transport'
   function RTCDataChannel(configuration)
@@ -374,8 +379,14 @@ function DCPF_install(ws_url)
   // Notify to the user if we have native DataChannels support or not
   if(createDataChannel)
   {
-    console.log("Both native and polyfill WebRTC DataChannel are available");
-    return "native";
+    if(reliable)
+    {
+      console.log("Both native and polyfill WebRTC DataChannel are available");
+      return "native";
+    }
+
+    console.warn("Native WebRTC DataChannel is not reliable, using polyfill instead");
+    return "native no reliable";
   }
 
   console.warn("WebRTC DataChannel is only available thought polyfill");
