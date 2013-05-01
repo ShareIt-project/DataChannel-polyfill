@@ -33,7 +33,7 @@ function DCPF_install(ws_url)
   }
 
   var createDataChannel;
-  var reliable = false;
+  var supportReliable = false;
 
   //Holds the STUN server to use for PeerConnections.
   var SERVER = "stun:stun.l.google.com:19302";
@@ -54,7 +54,7 @@ function DCPF_install(ws_url)
     pc.createDataChannel('DCPF_install__checkSupport').close();
 
     // Native reliable support available
-    reliable = true
+    supportReliable = true
   }
   catch(e){}
   finally
@@ -379,10 +379,42 @@ function DCPF_install(ws_url)
     setRemoteDescription.call(this, description, successCallback, failureCallback)
   }
 
+  if(createDataChannel && !supportReliable)
+  {
+    var createOffer  = RTCPeerConnection.prototype.createOffer;
+    var createAnswer = RTCPeerConnection.prototype.createAnswer;
+
+    RTCPeerConnection.prototype.createOffer = function(successCallback,
+                                                       failureCallback,
+                                                       constraints)
+    {
+      createOffer.call(this, function(offer)
+      {
+        offer.sdp = Reliable.higherBandwidthSDP(offer.sdp);
+        successCallback(offer)
+      },
+      failureCallback, constraints)
+    }
+
+    RTCPeerConnection.prototype.createAnswer = function(successCallback,
+                                                        failureCallback,
+                                                        constraints)
+    {
+      createAnswer.call(this, function(answer)
+      {
+        answer.sdp = Reliable.higherBandwidthSDP(answer.sdp);
+        successCallback(answer)
+      },
+      failureCallback, constraints)
+    }
+  }
+
+
+
   // Notify to the user if we have native DataChannels support or not
   if(createDataChannel)
   {
-    if(reliable)
+    if(supportReliable)
     {
       console.log("Both native and polyfill WebRTC DataChannel are available");
       return "native";
