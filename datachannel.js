@@ -168,6 +168,7 @@ function DCPF_install(ws_url)
 
 
   // Public function to initiate the creation of a new DataChannel
+  if(!createDataChannel)
   RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
   {
     // Back-ward compatibility
@@ -315,6 +316,7 @@ function DCPF_install(ws_url)
     closeRTC.call(this);
   };
 
+  if(!createDataChannel)
   RTCPeerConnection.prototype.setLocalDescription = function(description,
                                                              successCallback,
                                                              failureCallback)
@@ -357,6 +359,7 @@ function DCPF_install(ws_url)
     setLocalDescription.call(this, description, successCallback, failureCallback)
   }
 
+  if(!createDataChannel)
   RTCPeerConnection.prototype.setRemoteDescription = function(description,
                                                               successCallback,
                                                               failureCallback)
