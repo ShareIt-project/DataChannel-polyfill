@@ -168,33 +168,97 @@ function DCPF_install(ws_url)
 
 
   // Public function to initiate the creation of a new DataChannel
-  if(!createDataChannel)
-  RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
+  if(createDataChannel && !supportReliable && Reliable)
   {
-    // Back-ward compatibility
-    if(this.readyState)
-      this.signalingState = this.readyState
-    // Back-ward compatibility
+    RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
+    {
+      dataChannelDict = dataChannelDict || {}
+      dataChannelDict.reliable = false
 
-    if(this.signalingState == "closed")
-      throw INVALID_STATE;
+      var channel = new Reliable(createDataChannel.call(this, label, dataChannelDict))
+          channel.label = label
 
-    if(!label)
-        throw "'label' is not defined"
-    dataChannelDict = dataChannelDict || {}
+      return channel
+    }
 
-    var configuration = {label: label}
-    if(dataChannelDict.reliable != undefined)
-        configuration.reliable = dataChannelDict.reliable;
-
-    var self = this
-
-    var channel = new RTCDataChannel(configuration)
-
-    createUDT(this, channel, onopen)
-
-    return channel
+//    // wrapper for ondatachannel event based on code from EventTarget.js
+//    var listeners = {};
+//
+//    var addEventListener = RTCPeerConnection.prototype.addEventListener;
+//    RTCPeerConnection.prototype.addEventListener = function(type, listener,
+//                                                            useCapture)
+//    {
+//      if(type == 'datachannel')
+//      {
+//        if(listeners[type] === undefined)
+//          listeners[type] = [];
+//
+//        if(listeners[type].indexOf(listener) === -1)
+//          listeners[type].push(listener);
+//      }
+//      else
+//        addEventListener.call(this, type, listener, useCapture)
+//    }
+//
+//    var dispatchEvent = RTCPeerConnection.prototype.dispatchEvent;
+//    RTCPeerConnection.prototype.dispatchEvent = function(event)
+//    {
+//      if(type == 'datachannel')
+//      {
+//        event.channel = new Reliable(event.channel)
+//
+//        var listenerArray = listeners[event.type];
+//
+//        if(listenerArray !== undefined)
+//          for(var i=0, l=listenerArray.length; i<l; i++)
+//            listenerArray[i].call(this, event);
+//      }
+//      else
+//        dispatchEvent.call(this, event)
+//    };
+//
+//    var removeEventListener = RTCPeerConnection.prototype.removeEventListener;
+//    RTCPeerConnection.prototype.removeEventListener = function(type, listener)
+//    {
+//      if(type == 'datachannel')
+//      {
+//        var index = listeners[type].indexOf(listener);
+//
+//        if(index !== -1)
+//          listeners[type].splice(index, 1);
+//      }
+//      else
+//        removeEventListener.call(this, type, listener)
+//    };
   }
+
+  else
+    RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
+    {
+      // Back-ward compatibility
+      if(this.readyState)
+        this.signalingState = this.readyState
+      // Back-ward compatibility
+
+      if(this.signalingState == "closed")
+        throw INVALID_STATE;
+
+      if(!label)
+          throw "'label' is not defined"
+      dataChannelDict = dataChannelDict || {}
+
+      var configuration = {label: label}
+      if(dataChannelDict.reliable != undefined)
+          configuration.reliable = dataChannelDict.reliable;
+
+      var self = this
+
+      var channel = new RTCDataChannel(configuration)
+
+      createUDT(this, channel, onopen)
+
+      return channel
+    }
 
 
   // Private function to 'catch' the 'ondatachannel' event
@@ -222,12 +286,14 @@ function DCPF_install(ws_url)
       // Set channel as open
       channel.send(JSON.stringify(["ready", socketId]))
 
-      var evt = document.createEvent('Event')
-          evt.initEvent('datachannel', true, true)
-          evt.channel = channel
-
       if(pc.ondatachannel)
-         pc.ondatachannel(evt);
+      {
+        var evt = document.createEvent('Event')
+            evt.initEvent('datachannel', true, true)
+            evt.channel = channel
+
+       pc.ondatachannel(evt);
+      }
     })
   }
 
