@@ -66,6 +66,39 @@ function DCPF_install(ws_url)
   // DataChannel polyfill using WebSockets as 'underlying data transport'
   function RTCDataChannel(configuration)
   {
+    // EventTarget.js
+    var listeners = {};
+
+    this.addEventListener = function(type, listener)
+    {
+      if(listeners[type] === undefined)
+        listeners[type] = [];
+
+      if(listeners[type].indexOf(listener) === -1)
+        listeners[type].push(listener);
+    };
+
+    this.dispatchEvent = function(event)
+    {
+      var listenerArray = (listeners[event.type] || []);
+
+      var dummyListener = this['on' + event.type];
+      if(typeof dummyListener == 'function')
+        listenerArray = listenerArray.concat(dummyListener);
+
+      for(var i=0, l=listenerArray.length; i<l; i++)
+        listenerArray[i].call(this, event);
+    };
+
+    this.removeEventListener = function(type, listener)
+    {
+      var index = listeners[type].indexOf(listener);
+
+      if(index !== -1)
+        listeners[type].splice(index, 1);
+    };
+
+
     var self = this
 
     this._configuration = configuration
@@ -152,13 +185,14 @@ function DCPF_install(ws_url)
 //        return
 //      }
 
-      if(channel.onclose)
-         channel.onclose()
+      var event = document.createEvent("Event");
+          event.initEvent('close',true,true);
+
+      channel.dispatchEvent(event);
     }
-    channel._udt.onerror = function(error)
+    channel._udt.onerror = function(event)
     {
-      if(channel.onerror)
-         channel.onerror(error)
+      channel.dispatchEvent(event);
     }
     channel._udt.onopen = function()
     {
@@ -199,24 +233,21 @@ function DCPF_install(ws_url)
 //      else
 //        addEventListener.call(this, type, listener, useCapture)
 //    }
-//
-//    var dispatchEvent = RTCPeerConnection.prototype.dispatchEvent;
-//    RTCPeerConnection.prototype.dispatchEvent = function(event)
-//    {
-//      if(type == 'datachannel')
-//      {
-//        event.channel = new Reliable(event.channel)
-//
-//        var listenerArray = listeners[event.type];
-//
-//        if(listenerArray !== undefined)
-//          for(var i=0, l=listenerArray.length; i<l; i++)
-//            listenerArray[i].call(this, event);
-//      }
-//      else
-//        dispatchEvent.call(this, event)
-//    };
-//
+
+    var dispatchEvent = RTCPeerConnection.prototype.dispatchEvent;
+    RTCPeerConnection.prototype.dispatchEvent = function(event)
+    {
+      if(type == 'datachannel' && !(event.channel instanceof Reliable))
+      {
+        var channel = event.channel
+
+        event.channel = new Reliable(channel)
+        event.channel.label = channel.label
+      }
+
+      dispatchEvent.call(this, event)
+    };
+
 //    var removeEventListener = RTCPeerConnection.prototype.removeEventListener;
 //    RTCPeerConnection.prototype.removeEventListener = function(type, listener)
 //    {
@@ -277,23 +308,19 @@ function DCPF_install(ws_url)
     createUDT(pc, channel, function(channel)
     {
       // Set onmessage event to bypass messages to user defined function
-      channel._udt.onmessage = function(message)
+      channel._udt.onmessage = function(event)
       {
-        if(channel.onmessage)
-           channel.onmessage(message)
+        channel.dispatchEvent(event);
       }
 
       // Set channel as open
       channel.send(JSON.stringify(["ready", socketId]))
 
-      if(pc.ondatachannel)
-      {
-        var evt = document.createEvent('Event')
-            evt.initEvent('datachannel', true, true)
-            evt.channel = channel
+      var event = document.createEvent('Event')
+          event.initEvent('datachannel', true, true)
+          event.channel = channel
 
-       pc.ondatachannel(evt);
-      }
+      pc.dispatchEvent(event);
     })
   }
 
@@ -310,6 +337,7 @@ function DCPF_install(ws_url)
       {
         // Both peers support native DataChannels
         case 'create.native':
+        {
           // Close the ad-hoc signaling channel
           if(pc._signaling)
              pc._signaling.close();
@@ -320,14 +348,12 @@ function DCPF_install(ws_url)
           // Start native DataChannel connection
           channel._udt = pc.createDataChannel(channel._configuration.label,
                                               {reliable: channel._configuration.reliable})
-
-          channel._udt.onclose = channel._udt.onclose
-          channel._udt.onerror = channel._udt.onerror
-          channel._udt.onopen  = channel._udt.onopen
-          break
+        }
+        break
 
         // Connection through backend server is ready
         case 'ready':
+        {
           // Back-ward compatibility
           if(pc.readyState)
              pc.signalingState = pc.readyState
@@ -338,19 +364,21 @@ function DCPF_install(ws_url)
             return;
 
           // Set onmessage event to bypass messages to user defined function
-          channel._udt.onmessage = function(message)
+          channel._udt.onmessage = function(event)
           {
-            if(channel.onmessage)
-               channel.onmessage(message)
+            channel.dispatchEvent(event);
           }
 
           // Set channel as open
-          if(channel.onopen)
-             channel.onopen()
-          break
+          var event = document.createEvent('Event')
+              event.initEvent('open', true, true)
 
-          default:
-            console.error("Unknown event '"+eventName+"'")
+          channel.dispatchEvent(event);
+        }
+        break
+
+        default:
+          console.error("Unknown event '"+eventName+"'")
       }
     }
 
