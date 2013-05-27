@@ -56,11 +56,17 @@ function initChat()
 
 // Create PeerConnection
 
-function createPeerConnection(uid)
+function createPeerConnection(uid, socket)
 {
     console.log('createPeerConnection '+uid);
 
-    var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]});
+    var pc = new RTCPeerConnection({iceServers: [{url: SERVER}]},
+                                   {optional: [{RtpDataChannels: true}]});
+        pc.onicecandidate = function(event)
+        {
+          if(event.candidate)
+            socket.send(JSON.stringify(["peer.candidate", uid, event.candidate]));
+        }
 
   peerConnections[uid] = pc
 
@@ -111,7 +117,7 @@ window.addEventListener('load', function()
                 var uid = uids[i]
 
                 // Create PeerConnection
-                var pc = createPeerConnection(uid);
+                var pc = createPeerConnection(uid, socket);
 
                 var channel = pc.createDataChannel('chat')
                 initDataChannel(pc, channel)
@@ -156,12 +162,20 @@ window.addEventListener('load', function()
               var pc = peerConnections[uid];
                   pc.setRemoteDescription(new RTCSessionDescription({sdp:  sdp,
                                                                      type: 'answer'}));
+              break
+
+            case 'peer.candidate':
+              var uid = uids
+              var candidate = new RTCIceCandidate(sdp)
+
+              var pc = peerConnections[uid];
+                  pc.addIceCandidate(candidate);
             break
 
             case 'peer.create':
               var uid = uids
 
-              var pc = createPeerConnection(uid);
+              var pc = createPeerConnection(uid, socket);
                   pc.addEventListener('datachannel', function(event)
                   {
                     initDataChannel(pc, event.channel)

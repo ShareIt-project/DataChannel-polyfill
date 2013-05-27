@@ -394,9 +394,9 @@ function DCPF_install(ws_url)
     this._signaling = new WebSocket(ws_url)
     this._signaling.onopen = function(event)
     {
-      this.onmessage = function(message)
+      this.onmessage = function(event)
       {
-        var args = JSON.parse(message.data)
+        var args = JSON.parse(event.data)
 
         switch(args[0])
         {
