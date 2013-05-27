@@ -74,20 +74,9 @@ function DCPF_install(ws_url)
 
 
   // DataChannel polyfill using WebSockets as 'underlying data transport'
-  function RTCDataChannel(configuration)
+  function RTCDataChannel(label, dataChannelDict)
   {
     var self = this
-
-    // Use a WebSocket as 'underlying data transport' to create the DataChannel
-    this._udt = new WebSocket(ws_url)
-    this._udt.addEventListener('close', function(event)
-    {
-      self.dispatchEvent(event)
-    })
-    this._udt.addEventListener('error', function(event)
-    {
-      self.dispatchEvent(event)
-    })
 
     this.close = function()
     {
@@ -120,7 +109,6 @@ function DCPF_install(ws_url)
     });
 
     // label
-    var label = configuration.label
     this.__defineGetter__("label", function()
     {
       return label;
@@ -142,7 +130,7 @@ function DCPF_install(ws_url)
     });
 
     // reliable
-    var reliable = (configuration.reliable != undefined) ? configuration.reliable : true
+    var reliable = (dataChannelDict.reliable != undefined) ? dataChannelDict.reliable : true
     this.__defineGetter__("reliable", function()
     {
       return reliable;
@@ -192,7 +180,7 @@ function DCPF_install(ws_url)
 
     if(!pc._peerId)
     {
-      console.error("No peer ID")
+      console.warn("No peer ID")
       return
     }
 
@@ -200,7 +188,7 @@ function DCPF_install(ws_url)
 
     // Use a WebSocket as 'underlying data transport' to create the DataChannel
     channel._udt = new WebSocket(ws_url)
-    channel._udt.onclose = function()
+    channel._udt.addEventListener('close', function(event)
     {
 //      if(error && channel.onerror)
 //      {
@@ -208,19 +196,16 @@ function DCPF_install(ws_url)
 //        return
 //      }
 
-      var event = document.createEvent("Event");
-          event.initEvent('close',true,true);
-
       channel.dispatchEvent(event);
-    }
-    channel._udt.onerror = function(event)
+    })
+    channel._udt.addEventListener('error', function(event)
     {
       channel.dispatchEvent(event);
-    }
-    channel._udt.onopen = function()
+    })
+    channel._udt.addEventListener('open', function(event)
     {
       onopen(channel, pc)
-    }
+    })
   }
 
 
@@ -268,11 +253,7 @@ function DCPF_install(ws_url)
         throw "'label' is not defined"
       dataChannelDict = dataChannelDict || {}
 
-      var configuration = {label: label}
-      if(dataChannelDict.reliable != undefined)
-        configuration.reliable = dataChannelDict.reliable;
-
-      var channel = new RTCDataChannel(configuration)
+      var channel = new RTCDataChannel(label, dataChannelDict)
 
       createUDT(this, channel, onopen)
 
@@ -281,7 +262,7 @@ function DCPF_install(ws_url)
 
 
   // Private function to 'catch' the 'ondatachannel' event
-  function ondatachannel(pc, socketId, configuration)
+  function ondatachannel(pc, socketId, label, dataChannelDict)
   {
     // Back-ward compatibility
     if(pc.readyState)
@@ -291,7 +272,7 @@ function DCPF_install(ws_url)
     if(pc.signalingState == "closed")
       return;
 
-    var channel = new RTCDataChannel(configuration)
+    var channel = new RTCDataChannel(label, dataChannelDict)
 
     createUDT(pc, channel, function(channel)
     {
@@ -335,8 +316,7 @@ function DCPF_install(ws_url)
           pc.createDataChannel = createDataChannel
 
           // Start native DataChannel connection
-          channel._udt = pc.createDataChannel(channel._configuration.label,
-                                              {reliable: channel._configuration.reliable})
+          channel._udt = pc.createDataChannel(channel.label, channel.reliable)
         }
         break
 
@@ -372,8 +352,8 @@ function DCPF_install(ws_url)
     }
 
     // Query to the other peer to create a new DataChannel with us
-    channel.send(JSON.stringify(["create", pc._peerId, channel._configuration,
-                                 Boolean(createDataChannel)]))
+    channel.send(JSON.stringify(['create', pc._peerId, channel.label,
+                                 channel.reliable, Boolean(createDataChannel)]))
   }
 
 
@@ -421,7 +401,7 @@ function DCPF_install(ws_url)
         switch(args[0])
         {
           case 'create':
-            ondatachannel(self, args[1], args[2])
+            ondatachannel(self, args[1], args[2], {reliable: args[3]})
             break
 
           // Both peers support native DataChannels
