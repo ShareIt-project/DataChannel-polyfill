@@ -10,6 +10,10 @@ app.get('/style.css', function(req, res) {
   res.sendfile(__dirname + '/style.css');
 });
 
+app.get('/reliable.min.js', function(req, res) {
+  res.sendfile(__dirname + '/reliable.min.js');
+});
+
 app.get('/datachannel.js', function(req, res) {
   res.sendfile(__dirname + '/datachannel.js');
 });

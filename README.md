@@ -53,6 +53,10 @@ Requeriments
 
 Future work
 -----------
+* Use native implementations if both ends support them (currently it requires at
+  least one of the ends doesn't support native DataChannels so it can use the
+  polyfill).
+
 * Detect and allow the coexistence of native and polyfill implementations on the
   same network (use polyfill if one of the two ends doesn't support native
   DataChannels)

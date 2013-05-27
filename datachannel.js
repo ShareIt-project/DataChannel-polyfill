@@ -32,7 +32,7 @@
 function DCPF_install(ws_url)
 {
   // Fallbacks for vendor-specific variables until the spec is finalized.
-  var RTCPeerConnection = RTCPeerConnection || webkitRTCPeerConnection || mozRTCPeerConnection;
+  var RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
 
   // Check if browser has support for WebRTC PeerConnection
   if(RTCPeerConnection == undefined)
@@ -42,28 +42,36 @@ function DCPF_install(ws_url)
     return "old browser";
   }
 
+  var createDataChannel;
+  var supportReliable = false;
+
   //Holds the STUN server to use for PeerConnections.
   var SERVER = "stun:stun.l.google.com:19302";
 
   // Check if browser has support for native WebRTC DataChannel
-  function checkSupport()
+  var pc = new RTCPeerConnection({iceServers: [{url: SERVER}]},
+                                 {optional: [{RtpDataChannels: true}]})
+
+  try
   {
-    var pc = new RTCPeerConnection({"iceServers": [{"url": SERVER}]})
+    // Check native
+    pc.createDataChannel('DCPF_install__checkSupport',{reliable:false}).close();
 
-    try
-    {
-      pc.createDataChannel('DCPF_install__checkSupport')
-    }
-    catch(e)
-    {
-      return
-    }
+    // Native support available, store the function
+    createDataChannel = pc.createDataChannel
 
-    return RTCPeerConnection.prototype.createDataChannel
+    // Check reliable
+    pc.createDataChannel('DCPF_install__checkSupport').close();
+
+    // Native reliable support available
+    supportReliable = true
+  }
+  catch(e){}
+  finally
+  {
+    pc.close()
   }
 
-  // Check for native createDataChannel support to enable the polyfill
-  var createDataChannel = checkSupport()
 
   // DataChannel polyfill using WebSockets as 'underlying data transport'
   function RTCDataChannel(configuration)
@@ -81,8 +89,16 @@ function DCPF_install(ws_url)
       self.dispatchEvent(event)
     })
 
-    this.close = function(){this._udt.close()}
-    this.send  = function(data){this._udt.send(data)}
+    this.close = function()
+    {
+      if(this._udt)
+         this._udt.close()
+    }
+    this.send  = function(data)
+    {
+      if(this._udt)
+         this._udt.send(data)
+    }
 
     // binaryType
     this.__defineGetter__("binaryType", function()
@@ -97,6 +113,9 @@ function DCPF_install(ws_url)
     // bufferedAmount
     this.__defineGetter__("bufferedAmount", function()
     {
+      if(!self._udt)
+        return 0
+
       return self._udt.bufferedAmount;
     });
 
@@ -110,6 +129,9 @@ function DCPF_install(ws_url)
     // readyState
     this.__defineGetter__("readyState", function()
     {
+      if(!self._udt)
+        return "connecting"
+
       switch(self._udt.readyState)
       {
         case 0: return "connecting"
@@ -144,11 +166,14 @@ function DCPF_install(ws_url)
     };
     this.dispatchEvent = function(event)
     {
-      var listenerArray = listeners[event.type];
+      var listenerArray = (listeners[event.type] || []);
 
-      if(listenerArray !== undefined)
-        for(var i=0, listener; listener=listenerArray[i]; i++)
-          listener.call(this, event);
+      var dummyListener = this['on' + event.type];
+      if(typeof dummyListener == 'function')
+        listenerArray = listenerArray.concat(dummyListener);
+
+      for(var i=0, l=listenerArray.length; i<l; i++)
+        listenerArray[i].call(this, event);
     };
     this.removeEventListener = function(type, handler)
     {
@@ -157,159 +182,103 @@ function DCPF_install(ws_url)
       if(index !== -1)
         listeners[type].splice(index, 1);
     };
-
-    // EventListeners
-    this.__defineSetter__('onclose', function(handler)
-    {
-      this.addEventListener('close', handler, false)
-    });
-    this.__defineSetter__('onerror', function(handler)
-    {
-      this.addEventListener('error', handler, false)
-    });
-    this.__defineSetter__('onmessage', function(handler)
-    {
-      this.addEventListener('message', handler, false)
-    });
-    this.__defineSetter__('onopen', function(handler)
-    {
-      this.addEventListener('open', handler, false)
-    });
   }
 
-  // Create a signalling channel with a WebSocket on the proxy server with the
-  // defined ID and wait for new 'create' messages to create new DataChannels
-  function setId(pc, id)
+
+  function createUDT(pc, channel, onopen)
   {
-    if(pc._signaling)
-       pc._signaling.close();
+    pc._channels = pc._channels || {}
+    pc._channels[channel.label] = channel
 
-    pc._signaling = new WebSocket(ws_url)
-    pc._signaling.onopen = function(event)
+    if(!pc._peerId)
     {
-      this.onmessage = function(event)
-      {
-        var args = JSON.parse(event.data)
-
-        switch(args[0])
-        {
-          case 'create':
-            ondatachannel(pc, args[1], args[2])
-            break
-
-          // Both peers support native DataChannels
-          case 'create.native':
-            // Make native DataChannels to be created by default
-            pc.prototype.createDataChannel = createDataChannel
-        }
-      }
-
-      this.send(JSON.stringify(['setId', "pc."+id, Boolean(createDataChannel)]))
+      console.error("No peer ID")
+      return
     }
-    pc._signaling.onerror = function(event)
+
+    console.info("Creating UDT")
+
+    // Use a WebSocket as 'underlying data transport' to create the DataChannel
+    channel._udt = new WebSocket(ws_url)
+    channel._udt.onclose = function()
     {
-      console.error(event)
-    }
-  }
+//      if(error && channel.onerror)
+//      {
+//        channel.onerror(error)
+//        return
+//      }
 
-  // Set the PeerConnection peer ID
-  function setPeerId(pc, peerId)
-  {
-    pc._peerId = "pc."+peerId
+      var event = document.createEvent("Event");
+          event.initEvent('close',true,true);
+
+      channel.dispatchEvent(event);
+    }
+    channel._udt.onerror = function(event)
+    {
+      channel.dispatchEvent(event);
+    }
+    channel._udt.onopen = function()
+    {
+      onopen(channel, pc)
+    }
   }
 
 
   // Public function to initiate the creation of a new DataChannel
-  RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
+  if(createDataChannel && !supportReliable && Reliable)
   {
-    if(!this._peerId)
+    RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
     {
-      console.warn("peerId is not defined")
-      return
+      dataChannelDict = dataChannelDict || {}
+      dataChannelDict.reliable = false
+
+      var channel = new Reliable(createDataChannel.call(this, label, dataChannelDict))
+          channel.label = label
+
+      return channel
     }
 
-    // Back-ward compatibility
-    if(this.readyState)
-      this.signalingState = this.readyState
-    // Back-ward compatibility
+    var dispatchEvent = RTCPeerConnection.prototype.dispatchEvent;
+    RTCPeerConnection.prototype.dispatchEvent = function(event)
+    {
+      if(type == 'datachannel' && !(event.channel instanceof Reliable))
+      {
+        var channel = event.channel
 
-    if(this.signalingState == "closed")
-      throw INVALID_STATE;
+        event.channel = new Reliable(channel)
+        event.channel.label = channel.label
+      }
 
-    if(!label)
-      label = ''
-    dataChannelDict = dataChannelDict || {}
-
-    var configuration = {label: label}
-    if(dataChannelDict.reliable != undefined)
-      configuration.reliable = dataChannelDict.reliable;
-
-    var self = this
-
-    var channel = new RTCDataChannel(configuration)
-        channel._udt.onopen = function(event)
-        {
-          // Wait until the other end of the channel is ready
-          function onmessage(event)
-          {
-            var args = JSON.parse(event.data);
-
-            var eventName = args[0]
-
-            switch(eventName)
-            {
-              // Both peers support native DataChannels
-              case 'create.native':
-                // Close the ad-hoc signaling channel
-                if(self._signaling)
-                   self._signaling.close();
-
-                // Make native DataChannels to be created by default
-                self.prototype.createDataChannel = createDataChannel
-
-                // Start native DataChannel connection
-                self.createDataChannel(label, dataChannelDict)
-                break
-
-              // Connection through backend server is ready
-              case 'ready':
-                // Back-ward compatibility
-                if(self.readyState)
-                  self.signalingState = self.readyState
-                // Back-ward compatibility
-
-                // PeerConnection is closed, do nothing
-                if(self.signalingState == "closed")
-                  return;
-
-                this.removeEventListener('message', onmessage)
-                this.addEventListener('message', function(event)
-                {
-                  channel.dispatchEvent(event)
-                })
-
-                // Set channel as open
-                var event = document.createEvent('Event')
-                    event.initEvent('open', true, true)
-                    event.channel = channel
-
-                channel.dispatchEvent(event)
-                break
-
-              default:
-                console.error("Unknown event '"+eventName+"'")
-            }
-          }
-
-          channel._udt.addEventListener('message', onmessage)
-
-          // Query to the other peer to create a new DataChannel with us
-          channel.send(JSON.stringify(["create", self._peerId, configuration,
-                                       Boolean(createDataChannel)]))
-        }
-
-    return channel
+      dispatchEvent.call(this, event)
+    };
   }
+
+  else
+    RTCPeerConnection.prototype.createDataChannel = function(label, dataChannelDict)
+    {
+      // Back-ward compatibility
+      if(this.readyState)
+         this.signalingState = this.readyState
+      // Back-ward compatibility
+
+      if(this.signalingState == "closed")
+        throw INVALID_STATE;
+
+      if(!label)
+        throw "'label' is not defined"
+      dataChannelDict = dataChannelDict || {}
+
+      var configuration = {label: label}
+      if(dataChannelDict.reliable != undefined)
+        configuration.reliable = dataChannelDict.reliable;
+
+      var channel = new RTCDataChannel(configuration)
+
+      createUDT(this, channel, onopen)
+
+      return channel
+    }
+
 
   // Private function to 'catch' the 'ondatachannel' event
   function ondatachannel(pc, socketId, configuration)
@@ -323,23 +292,90 @@ function DCPF_install(ws_url)
       return;
 
     var channel = new RTCDataChannel(configuration)
-        channel._udt.onopen = function(event)
+
+    createUDT(pc, channel, function(channel)
+    {
+      // Set onmessage event to bypass messages to user defined function
+      channel._udt.onmessage = function(event)
+      {
+        channel.dispatchEvent(event);
+      }
+
+      // Set channel as open
+      channel.send(JSON.stringify(["ready", socketId]))
+
+      var event = document.createEvent('Event')
+          event.initEvent('datachannel', true, true)
+          event.channel = channel
+
+      pc.dispatchEvent(event);
+    })
+  }
+
+
+  function onopen(channel, pc)
+  {
+    // Wait until the other end of the channel is ready
+    channel._udt.onmessage = function(message)
+    {
+      var args = JSON.parse(message.data);
+
+      var eventName = args[0]
+
+      switch(eventName)
+      {
+        // Both peers support native DataChannels
+        case 'create.native':
         {
-          this.addEventListener('message', function(event)
+          // Close the ad-hoc signaling channel
+          if(pc._signaling)
+             pc._signaling.close();
+
+          // Make native DataChannels to be created by default
+          pc.createDataChannel = createDataChannel
+
+          // Start native DataChannel connection
+          channel._udt = pc.createDataChannel(channel._configuration.label,
+                                              {reliable: channel._configuration.reliable})
+        }
+        break
+
+        // Connection through backend server is ready
+        case 'ready':
+        {
+          // Back-ward compatibility
+          if(pc.readyState)
+             pc.signalingState = pc.readyState
+          // Back-ward compatibility
+
+          // PeerConnection is closed, do nothing
+          if(self.signalingState == "closed")
+            return;
+
+          // Set onmessage event to bypass messages to user defined function
+          channel._udt.onmessage = function(event)
           {
-            channel.dispatchEvent(event)
-          })
+            channel.dispatchEvent(event);
+          }
 
           // Set channel as open
-          channel.send(JSON.stringify(["ready", socketId]))
-
           var event = document.createEvent('Event')
-              event.initEvent('datachannel', true, true)
-              event.channel = channel
+              event.initEvent('open', true, true)
 
-          pc.dispatchEvent(event);
+          channel.dispatchEvent(event);
         }
+        break
+
+        default:
+          console.error("Unknown event '"+eventName+"'")
+      }
+    }
+
+    // Query to the other peer to create a new DataChannel with us
+    channel.send(JSON.stringify(["create", pc._peerId, channel._configuration,
+                                 Boolean(createDataChannel)]))
   }
+
 
   // Get the SDP session ID from a RTCSessionDescription object
   function getId(description)
@@ -362,30 +398,117 @@ function DCPF_install(ws_url)
 
     closeRTC.call(this);
   };
-    
+
+  if(!createDataChannel)
   RTCPeerConnection.prototype.setLocalDescription = function(description,
                                                              successCallback,
                                                              failureCallback)
   {
-    setId(this, getId(description))
+    var self = this
+
+    // Create a signalling channel with a WebSocket on the proxy server with the
+    // defined ID and wait for new 'create' messages to create new DataChannels
+    if(this._signaling)
+       this._signaling.close();
+
+    this._signaling = new WebSocket(ws_url)
+    this._signaling.onopen = function(event)
+    {
+      this.onmessage = function(message)
+      {
+        var args = JSON.parse(message.data)
+
+        switch(args[0])
+        {
+          case 'create':
+            ondatachannel(self, args[1], args[2])
+            break
+
+          // Both peers support native DataChannels
+          case 'create.native':
+            // Make native DataChannels to be created by default
+            self.createDataChannel = createDataChannel
+        }
+      }
+
+      this.send(JSON.stringify(['setId', "pc."+getId(description),
+                                Boolean(createDataChannel)]))
+    }
+    this._signaling.onerror = function(error)
+    {
+      console.error(error)
+    }
 
     setLocalDescription.call(this, description, successCallback, failureCallback)
   }
 
+  if(!createDataChannel)
   RTCPeerConnection.prototype.setRemoteDescription = function(description,
                                                               successCallback,
                                                               failureCallback)
   {
-    setPeerId(this, getId(description))
+    // Set the PeerConnection peer ID
+    this._peerId = "pc."+getId(description)
+
+    // Initialize pending channels
+    for(var label in this._channels)
+    {
+      var channel = this._channels[label]
+
+      if(channel._udt == undefined)
+        createUDT(this, channel, onopen)
+    }
 
     setRemoteDescription.call(this, description, successCallback, failureCallback)
   }
 
+  if(createDataChannel && !supportReliable && Reliable)
+  {
+    var createOffer  = RTCPeerConnection.prototype.createOffer;
+    var createAnswer = RTCPeerConnection.prototype.createAnswer;
+
+    RTCPeerConnection.prototype.createOffer = function(successCallback,
+                                                       failureCallback,
+                                                       constraints)
+    {
+      createOffer.call(this, function(offer)
+      {
+        offer.sdp = Reliable.higherBandwidthSDP(offer.sdp);
+        successCallback(offer)
+      },
+      failureCallback, constraints)
+    }
+
+    RTCPeerConnection.prototype.createAnswer = function(successCallback,
+                                                        failureCallback,
+                                                        constraints)
+    {
+      createAnswer.call(this, function(answer)
+      {
+        answer.sdp = Reliable.higherBandwidthSDP(answer.sdp);
+        successCallback(answer)
+      },
+      failureCallback, constraints)
+    }
+  }
+
+
+
   // Notify to the user if we have native DataChannels support or not
   if(createDataChannel)
   {
-    console.log("Both native and polyfill WebRTC DataChannel are available");
-    return "native";
+    if(supportReliable)
+    {
+      console.log("Both native and polyfill WebRTC DataChannel are available");
+      return "native";
+    }
+
+    if(Reliable)
+      console.warn("Native WebRTC DataChannel is not reliable, using polyfill instead");
+    else
+      console.error("Native WebRTC DataChannel is not reliable and not included polyfill");
+
+    return "native no reliable";
   }
 
   console.warn("WebRTC DataChannel is only available thought polyfill");
