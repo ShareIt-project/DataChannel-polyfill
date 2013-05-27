@@ -97,107 +97,104 @@ function initDataChannel(pc, channel)
 window.addEventListener('load', function()
 {
   var socket = new WebSocket("ws://localhost:8000/");
-	  socket.onopen = function()
-	  {
-	    socket.onmessage = function(message)
-	    {
-	      console.log("RECEIVED: "+message.data);
+      socket.onopen = function()
+      {
+        socket.onmessage = function(message)
+        {
+          console.log("RECEIVED: "+message.data);
 
-		  var args = JSON.parse(message.data);
+          var args = JSON.parse(message.data);
 
-		  var eventName = args[0]
-		  var uids      = args[1]
-		  var sdp       = args[2]
+          var eventName = args[0]
+          var uids      = args[1]
+          var sdp       = args[2]
 
-	      switch(eventName)
-	      {
-	        case 'peers':
-	          for(var i = 0; i < uids.length; i++)
-	          {
-	            var uid = uids[i]
-
-	            // Create PeerConnection
-	            var pc = createPeerConnection(uid, socket);
-
-	            var channel = pc.createDataChannel('chat', {reliable: false})
-	                channel.onopen = function()
-	                {
-	                  initDataChannel(pc, channel)
-	                }
-
-	            // Send offer to new PeerConnection
-	            pc.createOffer(function(offer)
-	            {
-	                console.log("createOffer: "+uid+", "+offer.sdp);
-
-	                socket.send(JSON.stringify(["offer", uid, offer.sdp]));
-
-	                pc.setLocalDescription(offer);
-	            },
-	            function(code)
-	            {
-                    console.error("Failure callback: " + code);
-                });
-	          }
-	        break
-
-	        case 'offer':
-              var uid = uids
-
-	          var pc = peerConnections[uid];
-	          pc.setRemoteDescription(new RTCSessionDescription({sdp:  sdp,
-	                                                             type: 'offer'}));
-
-	          // Send answer
-	          pc.createAnswer(function(answer)
+          switch(eventName)
+          {
+            case 'peers':
+              for(var i = 0; i < uids.length; i++)
               {
-                  console.log("createAnswer: "+uid+", "+answer.sdp);
+                var uid = uids[i]
 
-	              socket.send(JSON.stringify(["answer", uid, answer.sdp]));
+                // Create PeerConnection
+                var pc = createPeerConnection(uid, socket);
 
-                  pc.setLocalDescription(answer);
-              });
-	        break
+                var channel = pc.createDataChannel('chat', {reliable: false})
+                initDataChannel(pc, channel)
 
-	        case 'answer':
-              var uid = uids
+                // Send offer to new PeerConnection
+                pc.createOffer(function(offer)
+                {
+                  console.log("createOffer: "+uid+", "+offer.sdp);
 
-	          var pc = peerConnections[uid];
-	          pc.setRemoteDescription(new RTCSessionDescription({sdp:  sdp,
-                                                                 type: 'answer'}));
+                  socket.send(JSON.stringify(["offer", uid, offer.sdp]));
+
+                  pc.setLocalDescription(offer);
+                },
+                function(code)
+                {
+                  console.error("Failure callback: " + code);
+                });
+              }
             break
 
-	        case 'peer.candidate':
+            case 'offer':
+              var uid = uids
+
+              var pc = peerConnections[uid];
+                  pc.setRemoteDescription(new RTCSessionDescription({sdp:  sdp,
+                                                                     type: 'offer'}));
+
+              // Send answer
+              pc.createAnswer(function(answer)
+              {
+                console.log("createAnswer: "+uid+", "+answer.sdp);
+
+                socket.send(JSON.stringify(["answer", uid, answer.sdp]));
+
+                pc.setLocalDescription(answer);
+              });
+            break
+
+            case 'answer':
+              var uid = uids
+
+              var pc = peerConnections[uid];
+                  pc.setRemoteDescription(new RTCSessionDescription({sdp:  sdp,
+                                                                     type: 'answer'}));
+              break
+
+            case 'peer.candidate':
               var uid = uids
               var candidate = new RTCIceCandidate(sdp)
 
               var pc = peerConnections[uid];
                   pc.addIceCandidate(candidate);
-	        break
+            break
 
-	        case 'peer.create':
+            case 'peer.create':
               var uid = uids
 
-	          var pc = createPeerConnection(uid, socket);
-	              pc.ondatachannel = function(event)
-	              {
-	                var channel = event.channel
+              var pc = createPeerConnection(uid, socket);
+                  pc.addEventListener('datachannel', function(event)
+                  {
+                    var channel = event.channel
 
-	                initDataChannel(pc, channel)
-	              }
-	        break
+                    initDataChannel(pc, channel)
+                  })
+            break
 
-	        case 'peer.remove':
+            case 'peer.remove':
               var uid = uids
 
-	          delete peerConnections[uid];
-	        break
-	      }
-	    };
-	  };
+              delete peerConnections[uid];
+            break
+          }
+        };
+      };
       socket.onerror = function(error)
       {
-          console.error(error)
+        console.error(error)
       }
 
 
