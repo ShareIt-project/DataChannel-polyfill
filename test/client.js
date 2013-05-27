@@ -178,9 +178,7 @@ window.addEventListener('load', function()
               var pc = createPeerConnection(uid, socket);
                   pc.addEventListener('datachannel', function(event)
                   {
-                    var channel = event.channel
-
-                    initDataChannel(pc, channel)
+                    initDataChannel(pc, event.channel)
                   })
             break
 

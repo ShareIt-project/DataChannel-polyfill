@@ -1,24 +1,34 @@
 /**
-  DataChannel polyfill Web browser polyfill that implements the WebRTC
-  DataChannel API over a websocket. It implements the full latest DataChannel 
-  API specification defined at 2012-10-21.
-  Copyright (C) 2013  Jesús Leganés Combarro
+ * DataChannel polyfill
+ * 
+ * Web browser polyfill that implements the WebRTC DataChannel API over a
+ * websocket. It implements the full latest DataChannel API specification
+ * defined at 2013-01-16.
+ * 
+ * Copyright (C) 2012-2013 Jesús Leganés Combarro "Piranna" <piranna@gmail.com>
+ * 
+ * This code can be found at https://github.com/piranna/DataChannel-polyfill
+ * 
+ * 
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU Affero General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any
+ * later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
+ * 
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as
-  published by the Free Software Foundation, either version 3 of the
-  License, or (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-
+/**
+ * Install the polyfill
+ * @param {String} ws_url URL to the backend server
+ */
 function DCPF_install(ws_url)
 {
   // Fallbacks for vendor-specific variables until the spec is finalized.
@@ -64,7 +74,7 @@ function DCPF_install(ws_url)
 
 
   // DataChannel polyfill using WebSockets as 'underlying data transport'
-  function RTCDataChannel(configuration)
+  function RTCDataChannel(label, dataChannelDict)
   {
     // EventTarget.js
     var listeners = {};
@@ -101,9 +111,6 @@ function DCPF_install(ws_url)
 
     var self = this
 
-    this._configuration = configuration
-
-
     this.close = function()
     {
       if(this._udt)
@@ -135,7 +142,6 @@ function DCPF_install(ws_url)
     });
 
     // label
-    var label = configuration.label
     this.__defineGetter__("label", function()
     {
       return label;
@@ -157,11 +163,46 @@ function DCPF_install(ws_url)
     });
 
     // reliable
-    var reliable = (configuration.reliable != undefined) ? configuration.reliable : true
+    var reliable = (dataChannelDict.reliable != undefined) ? dataChannelDict.reliable : true
     this.__defineGetter__("reliable", function()
     {
       return reliable;
     });
+  }
+
+  // Basic EventTarget functionality from on EventTarget.js
+  // https://raw.github.com/piranna/EventTarget.js
+  RTCDataChannel.prototype = new function()
+  {
+    var listeners = {};
+
+    // EventTarget methods
+    this.addEventListener = function(type, handler, bubble)
+    {
+      if(listeners[type] === undefined)
+         listeners[type] = [];
+
+      if(listeners[type].indexOf(handler) === -1)
+         listeners[type].push(handler);
+    };
+    this.dispatchEvent = function(event)
+    {
+      var listenerArray = (listeners[event.type] || []);
+
+      var dummyListener = this['on' + event.type];
+      if(typeof dummyListener == 'function')
+        listenerArray = listenerArray.concat(dummyListener);
+
+      for(var i=0, l=listenerArray.length; i<l; i++)
+        listenerArray[i].call(this, event);
+    };
+    this.removeEventListener = function(type, handler)
+    {
+      var index = listeners[type].indexOf(listener);
+
+      if(index !== -1)
+        listeners[type].splice(index, 1);
+    };
   }
 
 
@@ -171,13 +212,16 @@ function DCPF_install(ws_url)
     pc._channels[channel.label] = channel
 
     if(!pc._peerId)
+    {
+      console.warn("No peer ID")
       return
+    }
 
     console.info("Creating UDT")
 
     // Use a WebSocket as 'underlying data transport' to create the DataChannel
     channel._udt = new WebSocket(ws_url)
-    channel._udt.onclose = function()
+    channel._udt.addEventListener('close', function(event)
     {
 //      if(error && channel.onerror)
 //      {
@@ -185,19 +229,16 @@ function DCPF_install(ws_url)
 //        return
 //      }
 
-      var event = document.createEvent("Event");
-          event.initEvent('close',true,true);
-
       channel.dispatchEvent(event);
-    }
-    channel._udt.onerror = function(event)
+    })
+    channel._udt.addEventListener('error', function(event)
     {
       channel.dispatchEvent(event);
-    }
-    channel._udt.onopen = function()
+    })
+    channel._udt.addEventListener('open', function(event)
     {
       onopen(channel, pc)
-    }
+    })
   }
 
 
@@ -215,25 +256,6 @@ function DCPF_install(ws_url)
       return channel
     }
 
-//    // wrapper for ondatachannel event based on code from EventTarget.js
-//    var listeners = {};
-//
-//    var addEventListener = RTCPeerConnection.prototype.addEventListener;
-//    RTCPeerConnection.prototype.addEventListener = function(type, listener,
-//                                                            useCapture)
-//    {
-//      if(type == 'datachannel')
-//      {
-//        if(listeners[type] === undefined)
-//          listeners[type] = [];
-//
-//        if(listeners[type].indexOf(listener) === -1)
-//          listeners[type].push(listener);
-//      }
-//      else
-//        addEventListener.call(this, type, listener, useCapture)
-//    }
-
     var dispatchEvent = RTCPeerConnection.prototype.dispatchEvent;
     RTCPeerConnection.prototype.dispatchEvent = function(event)
     {
@@ -247,20 +269,6 @@ function DCPF_install(ws_url)
 
       dispatchEvent.call(this, event)
     };
-
-//    var removeEventListener = RTCPeerConnection.prototype.removeEventListener;
-//    RTCPeerConnection.prototype.removeEventListener = function(type, listener)
-//    {
-//      if(type == 'datachannel')
-//      {
-//        var index = listeners[type].indexOf(listener);
-//
-//        if(index !== -1)
-//          listeners[type].splice(index, 1);
-//      }
-//      else
-//        removeEventListener.call(this, type, listener)
-//    };
   }
 
   else
@@ -268,23 +276,17 @@ function DCPF_install(ws_url)
     {
       // Back-ward compatibility
       if(this.readyState)
-        this.signalingState = this.readyState
+         this.signalingState = this.readyState
       // Back-ward compatibility
 
       if(this.signalingState == "closed")
         throw INVALID_STATE;
 
       if(!label)
-          throw "'label' is not defined"
+        throw "'label' is not defined"
       dataChannelDict = dataChannelDict || {}
 
-      var configuration = {label: label}
-      if(dataChannelDict.reliable != undefined)
-          configuration.reliable = dataChannelDict.reliable;
-
-      var self = this
-
-      var channel = new RTCDataChannel(configuration)
+      var channel = new RTCDataChannel(label, dataChannelDict)
 
       createUDT(this, channel, onopen)
 
@@ -293,7 +295,7 @@ function DCPF_install(ws_url)
 
 
   // Private function to 'catch' the 'ondatachannel' event
-  function ondatachannel(pc, socketId, configuration)
+  function ondatachannel(pc, socketId, label, dataChannelDict)
   {
     // Back-ward compatibility
     if(pc.readyState)
@@ -303,7 +305,7 @@ function DCPF_install(ws_url)
     if(pc.signalingState == "closed")
       return;
 
-    var channel = new RTCDataChannel(configuration)
+    var channel = new RTCDataChannel(label, dataChannelDict)
 
     createUDT(pc, channel, function(channel)
     {
@@ -323,6 +325,7 @@ function DCPF_install(ws_url)
       pc.dispatchEvent(event);
     })
   }
+
 
   function onopen(channel, pc)
   {
@@ -346,8 +349,7 @@ function DCPF_install(ws_url)
           pc.createDataChannel = createDataChannel
 
           // Start native DataChannel connection
-          channel._udt = pc.createDataChannel(channel._configuration.label,
-                                              {reliable: channel._configuration.reliable})
+          channel._udt = pc.createDataChannel(channel.label, channel.reliable)
         }
         break
 
@@ -383,8 +385,8 @@ function DCPF_install(ws_url)
     }
 
     // Query to the other peer to create a new DataChannel with us
-    channel.send(JSON.stringify(["create", pc._peerId, channel._configuration,
-                                 Boolean(createDataChannel)]))
+    channel.send(JSON.stringify(['create', pc._peerId, channel.label,
+                                 channel.reliable, Boolean(createDataChannel)]))
   }
 
 
@@ -423,16 +425,16 @@ function DCPF_install(ws_url)
        this._signaling.close();
 
     this._signaling = new WebSocket(ws_url)
-    this._signaling.onopen = function()
+    this._signaling.onopen = function(event)
     {
-      this.onmessage = function(message)
+      this.onmessage = function(event)
       {
-        var args = JSON.parse(message.data)
+        var args = JSON.parse(event.data)
 
         switch(args[0])
         {
           case 'create':
-            ondatachannel(self, args[1], args[2])
+            ondatachannel(self, args[1], args[2], {reliable: args[3]})
             break
 
           // Both peers support native DataChannels
