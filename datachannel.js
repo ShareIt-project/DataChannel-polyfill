@@ -136,41 +136,7 @@ function DCPF_install(ws_url)
       return reliable;
     });
   }
-
-  // Basic EventTarget functionality from on EventTarget.js
-  // https://raw.github.com/piranna/EventTarget.js
-  RTCDataChannel.prototype = new function()
-  {
-    var listeners = {};
-
-    // EventTarget methods
-    this.addEventListener = function(type, handler, bubble)
-    {
-      if(listeners[type] === undefined)
-         listeners[type] = [];
-
-      if(listeners[type].indexOf(handler) === -1)
-         listeners[type].push(handler);
-    };
-    this.dispatchEvent = function(event)
-    {
-      var listenerArray = (listeners[event.type] || []);
-
-      var dummyListener = this['on' + event.type];
-      if(typeof dummyListener == 'function')
-        listenerArray = listenerArray.concat(dummyListener);
-
-      for(var i=0, l=listenerArray.length; i<l; i++)
-        listenerArray[i].call(this, event);
-    };
-    this.removeEventListener = function(type, handler)
-    {
-      var index = listeners[type].indexOf(listener);
-
-      if(index !== -1)
-        listeners[type].splice(index, 1);
-    };
-  }
+  RTCDataChannel.prototype = new EventTarget()
 
 
   function createUDT(pc, channel, onopen)
