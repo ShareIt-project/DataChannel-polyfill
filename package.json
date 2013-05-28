@@ -1,6 +1,10 @@
 {
   "name": "DataChannel-polyfill",
   "version": "1.0.0-3",
+  "description": "WebRTC DataChannels polyfill using WebSockets",
+  "devDependencies": {
+    "uglify-js": "~1.3.4"
+  },
   "dependencies": {
     "ws": "0.4.x"
   },
