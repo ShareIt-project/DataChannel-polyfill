@@ -44,6 +44,10 @@ var base = [
   , 'datachannel.js'
 ];
 
+var DIST_FOLDER   = '/../dist/';
+var SOURCE_FOLDER = '/../src/';
+var OUTPUT_NAME = 'datachannel';
+
 
 /**
  * @param {Array} transports The transports that needs to be bundled.
@@ -88,7 +92,7 @@ var builder = module.exports = function () {
 
   var files = [];
   base.forEach(function (file) {
-    files.push(__dirname + '/../src/' + file);
+    files.push(__dirname + SOURCE_FOLDER + file);
   });
 
   var results = {};
@@ -177,12 +181,12 @@ if (!module.parent){
     if (err) return console.error(err);
 		console.log(__dirname);
     fs.write(
-        fs.openSync(__dirname + '/../dist/datachannel.js', 'w')
+        fs.openSync(__dirname + DIST_FOLDER + OUTPUT_NAME + '.js', 'w')
       , content
       , 0
       , 'utf8'
     );
-    console.log('Successfully generated the development build: datachannel.js');
+    console.log('Successfully generated the development build: ' + OUTPUT_NAME + '.js');
   });
 
   // and build a production build
@@ -190,11 +194,11 @@ if (!module.parent){
     if (err) return console.error(err);
 
     fs.write(
-        fs.openSync(__dirname + '/../dist/datachannel.min.js', 'w')
+        fs.openSync(__dirname + DIST_FOLDER + OUTPUT_NAME + '.min.js', 'w')
       , content
       , 0
       , 'utf8'
     );
-    console.log('Successfully generated the production build: datachannel.min.js');
+    console.log('Successfully generated the production build: ' + OUTPUT_NAME + '.min.js');
   });
 }
