@@ -460,3 +460,5 @@ function DCPF_install(ws_url)
   console.warn("WebRTC DataChannel is only available thought polyfill");
   return "polyfill";
 }
+
+exports.DCPF_install = DCPF_install;
