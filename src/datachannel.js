@@ -282,6 +282,9 @@ function DCPF_install(ws_url)
 
     createUDT(pc, channel, function(channel)
     {
+      // Set channel as open
+      channel.send(JSON.stringify(["ready", socketId]))
+
       // Set onmessage event to bypass messages to user defined function
       channel._udt.onmessage = function(event)
       {
@@ -289,14 +292,17 @@ function DCPF_install(ws_url)
       }
 
       // Set channel as open
-      channel.send(JSON.stringify(["ready", socketId]))
-
       var event = document.createEvent('Event')
-          event.initEvent('datachannel', true, true)
-          event.channel = channel
+          event.initEvent('open', true, true)
 
-      pc.dispatchEvent(event);
+      channel.dispatchEvent(event);
     })
+
+    var event = document.createEvent('Event')
+        event.initEvent('datachannel', true, true)
+        event.channel = channel
+
+    pc.dispatchEvent(event);
   }
 
 
