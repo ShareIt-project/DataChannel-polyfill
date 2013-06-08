@@ -3,6 +3,8 @@
 	<name>DataChannel-polyfill</name>
 	<comment></comment>
 	<projects>
+		<project>EventTarget.js</project>
+		<project>reliable</project>
 	</projects>
 	<buildSpec>
 	</buildSpec>

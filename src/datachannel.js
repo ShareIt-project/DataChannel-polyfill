@@ -129,11 +129,51 @@ function DCPF_install(ws_url)
       }
     });
 
-    // reliable
-    var reliable = (dataChannelDict.reliable != undefined) ? dataChannelDict.reliable : true
-    this.__defineGetter__("reliable", function()
+    // id
+    var id = (dataChannelDict.id != undefined) ? dataChannelDict.id : 0
+    this.__defineGetter__("id", function()
     {
-      return reliable;
+      return id;
+    });
+
+    // maxRetransmitTime
+    var maxRetransmitTime = (dataChannelDict.maxRetransmitTime != undefined) ? dataChannelDict.maxRetransmitTime : null
+    this.__defineGetter__("maxRetransmitTime", function()
+    {
+      return maxRetransmitTime;
+    });
+
+    // maxRetransmits
+    var maxRetransmits = (dataChannelDict.maxRetransmits != undefined) ? dataChannelDict.maxRetransmits : null
+    this.__defineGetter__("maxRetransmits", function()
+    {
+      return maxRetransmits;
+    });
+
+    if(maxRetransmitTime && maxRetransmits)
+      throw SyntaxError
+
+    var reliable = !(maxRetransmitTime || maxRetransmits)
+
+    // negotiated
+    var negotiated = (dataChannelDict.negotiated != undefined) ? dataChannelDict.negotiated : false
+    this.__defineGetter__("negotiated", function()
+    {
+      return negotiated;
+    });
+
+    // ordered
+    var ordered = (dataChannelDict.ordered != undefined) ? dataChannelDict.ordered : false
+    this.__defineGetter__("ordered", function()
+    {
+      return ordered;
+    });
+
+    // protocol
+    var protocol = (dataChannelDict.protocol != undefined) ? dataChannelDict.protocol : ""
+    this.__defineGetter__("protocol", function()
+    {
+      return protocol;
     });
   }
   RTCDataChannel.prototype = new EventTarget()
