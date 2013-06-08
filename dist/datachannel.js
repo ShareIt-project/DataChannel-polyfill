@@ -170,11 +170,51 @@ function DCPF_install(ws_url)
       }
     });
 
-    // reliable
-    var reliable = (dataChannelDict.reliable != undefined) ? dataChannelDict.reliable : true
-    this.__defineGetter__("reliable", function()
+    // id
+    var id = (dataChannelDict.id != undefined) ? dataChannelDict.id : 0
+    this.__defineGetter__("id", function()
     {
-      return reliable;
+      return id;
+    });
+
+    // maxRetransmitTime
+    var maxRetransmitTime = (dataChannelDict.maxRetransmitTime != undefined) ? dataChannelDict.maxRetransmitTime : null
+    this.__defineGetter__("maxRetransmitTime", function()
+    {
+      return maxRetransmitTime;
+    });
+
+    // maxRetransmits
+    var maxRetransmits = (dataChannelDict.maxRetransmits != undefined) ? dataChannelDict.maxRetransmits : null
+    this.__defineGetter__("maxRetransmits", function()
+    {
+      return maxRetransmits;
+    });
+
+    if(maxRetransmitTime && maxRetransmits)
+      throw SyntaxError
+
+    var reliable = !(maxRetransmitTime || maxRetransmits)
+
+    // negotiated
+    var negotiated = (dataChannelDict.negotiated != undefined) ? dataChannelDict.negotiated : false
+    this.__defineGetter__("negotiated", function()
+    {
+      return negotiated;
+    });
+
+    // ordered
+    var ordered = (dataChannelDict.ordered != undefined) ? dataChannelDict.ordered : false
+    this.__defineGetter__("ordered", function()
+    {
+      return ordered;
+    });
+
+    // protocol
+    var protocol = (dataChannelDict.protocol != undefined) ? dataChannelDict.protocol : ""
+    this.__defineGetter__("protocol", function()
+    {
+      return protocol;
     });
   }
   RTCDataChannel.prototype = new EventTarget()
@@ -283,6 +323,9 @@ function DCPF_install(ws_url)
 
     createUDT(pc, channel, function(channel)
     {
+      // Set channel as open
+      channel.send(JSON.stringify(["ready", socketId]))
+
       // Set onmessage event to bypass messages to user defined function
       channel._udt.onmessage = function(event)
       {
@@ -290,14 +333,17 @@ function DCPF_install(ws_url)
       }
 
       // Set channel as open
-      channel.send(JSON.stringify(["ready", socketId]))
-
       var event = document.createEvent('Event')
-          event.initEvent('datachannel', true, true)
-          event.channel = channel
+          event.initEvent('open', true, true)
 
-      pc.dispatchEvent(event);
+      channel.dispatchEvent(event);
     })
+
+    var event = document.createEvent('Event')
+        event.initEvent('datachannel', true, true)
+        event.channel = channel
+
+    pc.dispatchEvent(event);
   }
 
 
