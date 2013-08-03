@@ -233,10 +233,10 @@ function DCPF_install(ws_url)
     var dispatchEvent = RTCPeerConnection.prototype.dispatchEvent;
     RTCPeerConnection.prototype.dispatchEvent = function(event)
     {
-      if(type == 'datachannel' && !(event.channel instanceof Reliable))
-      {
-        var channel = event.channel
+      var channel = event.channel;
 
+      if(event.type == 'datachannel' && !(channel instanceof Reliable))
+      {
         event.channel = new Reliable(channel)
         event.channel.label = channel.label
       }
